@@ -1,3 +1,4 @@
+import { CellState } from "@/types"
 import Cell from "./cell"
 
 type Props = {
@@ -10,7 +11,7 @@ export default function Board(props: Props) {
         {[...Array(props.height)].map((_, y) => {
             return <div key={`row_${y}`} className="flex flex-row">
                 {[...Array(props.width)].map((_, x) => {
-                    return <Cell key={`cell_${x}`} />
+                    return <Cell key={`cell_${x}_${y}`} state={CellState.Number} number={x + 1} />
                 })}
                 </div>
             })
