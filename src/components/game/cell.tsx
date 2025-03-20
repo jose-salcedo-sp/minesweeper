@@ -1,38 +1,40 @@
-import { CellState } from "@/types";
-import { BombIcon } from "lucide-react";
+import { CellState, CellStateType } from "@/types";
+import { BombIcon, FlagIcon, FlagTriangleRight, TargetIcon } from "lucide-react";
 
-type NumberCellProps = {
-  state: CellState.Number;
-  number: number;
-};
-
-type OtherCellProps = {
-  state: Exclude<CellState, CellState.Number>;
-};
-
-type Props = NumberCellProps | OtherCellProps;
+type Props =
+  | {
+      state: typeof CellState.n;
+      number: number;
+    }
+  | {
+      state: Exclude<CellStateType, typeof CellState.n>;
+    };
 
 export default function Cell(props: Props) {
-  return props.state === CellState.Unreveiled ? (
-    <UnreveiledCell />
-  ) : props.state === CellState.Empty ? (
-    <EmptyCell />
-  ) : props.state === CellState.Number ? (
-    <NumberCell n={props.number!} />
-  ) : (
-    <BombCell />
-  );
+  if (props.state === CellState.u) {
+    return <UnreveiledCell />;
+  } else if (props.state === CellState.e) {
+    return <EmptyCell />;
+  } else if (props.state === CellState.n) {
+    return <NumberCell n={props.number} />;
+  } else if (props.state === CellState.x) {
+    return <ExplosionCell />;
+  } else if (props.state === CellState.f) {
+    return <FlagCell />;
+  } else {
+    return <BombCell />;
+  }
 }
 
 const number_colors = [
-    "text-blue-400",
-    "text-green-400",
-    "text-red-500",
-    "text-blue-500",
-    "text-red-700",
-    "text-teal-700",
-    "text-gray-400",
-    "text-orange-900"
+  "text-blue-400",
+  "text-green-400",
+  "text-red-500",
+  "text-blue-500",
+  "text-red-700",
+  "text-teal-700",
+  "text-gray-400",
+  "text-orange-900",
 ] as const;
 
 function UnreveiledCell() {
@@ -47,8 +49,19 @@ function EmptyCell() {
 
 function NumberCell({ n }: { n: number }) {
   return (
-    <div className="aspect-square w-10 bg-gray-900 flex justify-center items-center">
-          <span className={`${number_colors[n-1]}`}>{n}</span>
+    <div className="aspect-square w-10 bg-gray-800 flex justify-center items-center">
+      <span className={`${number_colors[n - 1]}`}>{n}</span>
+    </div>
+  );
+}
+
+function ExplosionCell() {
+  return (
+    <div className="aspect-square w-10 bg-red-500 flex justify-center items-center">
+      <TargetIcon
+        size={20}
+        className="text-black animate-ping repeat-infinite"
+      />
     </div>
   );
 }
@@ -56,7 +69,15 @@ function NumberCell({ n }: { n: number }) {
 function BombCell() {
   return (
     <div className="aspect-square w-10 bg-gray-800 flex justify-center items-center">
-      <BombIcon size={20} className="bg-red-500"/>
+      <BombIcon size={20} className="text-red-500" />
+    </div>
+  );
+}
+
+function FlagCell() {
+  return (
+    <div className="aspect-square w-10 bg-gray-500 flex justify-center items-center">
+      <FlagTriangleRight size={20} className="text-black" />
     </div>
   );
 }
