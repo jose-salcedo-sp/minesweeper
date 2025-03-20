@@ -7,6 +7,6 @@ export const Route = createFileRoute('/room/$roomId')({
 
 function RouteComponent() {
     return <div>
-        <Board height={8} width={8} />
+        <Board />
     </div>
 }

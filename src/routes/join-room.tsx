@@ -1,3 +1,4 @@
+import { useAuth } from "@/components/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -36,14 +37,17 @@ const formOpts = formOptions({
 });
 
 function RouteComponent() {
+  const { login } = useAuth();
+
   const form = useForm({
     ...formOpts,
     onSubmit: async ({ value }) => {
       // Do something with form data
-      const timeout = new Promise((resolve) => setTimeout(resolve, 2000));
-      await timeout;
+      // const timeout = new Promise((resolve) => setTimeout(resolve, 2000));
+      // await timeout;
 
-      console.log(value);
+      // console.log(value);
+      login(value.name);
     },
   });
 
@@ -122,9 +126,11 @@ function RouteComponent() {
               selector={(state) => [state.canSubmit, state.isSubmitting]}
               children={([canSubmit, isSubmitting]) => (
                 <Button type="submit" disabled={!canSubmit}>
-                  {isSubmitting ?
-                      <LoaderCircleIcon className="animate-spin" />
-                      : "Submit"}
+                  {isSubmitting ? (
+                    <LoaderCircleIcon className="animate-spin" />
+                  ) : (
+                    "Submit"
+                  )}
                 </Button>
               )}
             />

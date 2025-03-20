@@ -1,33 +1,43 @@
 import { CellState, CellStateType } from "@/types";
 import { BombIcon, FlagTriangleRight, TargetIcon } from "lucide-react";
-import { JSX } from "react";
+import { Button } from "../ui/button";
+import { useAuth } from "../contexts/auth-context";
 
-type Props =
+type Props = {
+  x: number;
+  y: number;
+} & (
   | {
       state: typeof CellState.n;
       number: number;
     }
   | {
       state: Exclude<CellStateType, typeof CellState.n>;
-    };
-
-const cell_variants: Record<
-  Exclude<CellStateType, typeof CellState.n>,
-  JSX.Element
-> = {
-  [CellState.u]: <UnreveiledCell />,
-  [CellState.e]: <EmptyCell />,
-  [CellState.x]: <ExplosionCell />,
-  [CellState.f]: <FlagCell />,
-  [CellState.b]: <BombCell />,
-};
+    }
+);
 
 export default function Cell(props: Props) {
+  const { updateBoard } = useAuth();
+
+  function markCell(action: "r" | "f") {
+    return async () => {
+      await updateBoard(props.x, props.y, action);
+    };
+  }
+
   switch (props.state) {
+    case CellState.u:
+      return <UnreveiledCell markCell={markCell} />;
+    case CellState.f:
+      return <FlagCell markCell={markCell} />;
     case CellState.n: // Check number variant because it comes with props
       return <NumberCell n={props.number} />;
-    default: // No need to check any of the other variants
-      return cell_variants[props.state];
+    case CellState.b:
+      return <BombCell />;
+    case CellState.e:
+      return <EmptyCell />;
+    case CellState.x:
+      return <ExplosionCell />;
   }
 }
 
@@ -42,9 +52,33 @@ const number_colors = [
   "text-orange-900",
 ] as const;
 
-function UnreveiledCell() {
+function UnreveiledCell({
+  markCell,
+}: {
+  markCell: (action: "r" | "f") => () => Promise<void>;
+}) {
   return (
-    <div className="aspect-square w-10 bg-gray-500 border-2 border-gray-800"></div>
+    <Button
+      onAuxClick={markCell("f")}
+      onClick={markCell("r")}
+      className="aspect-square w-10 bg-gray-500 border-2 border-gray-800 border-r-0"
+    ></Button>
+  );
+}
+
+function FlagCell({
+  markCell,
+}: {
+  markCell: (action: "r" | "f") => () => Promise<void>;
+}) {
+  return (
+    <Button
+      onAuxClick={markCell("f")}
+      onClick={markCell("r")}
+      className="aspect-square w-10 bg-gray-500 flex justify-center items-center"
+    >
+      <FlagTriangleRight size={20} className="text-black" />
+    </Button>
   );
 }
 
@@ -75,14 +109,6 @@ function BombCell() {
   return (
     <div className="aspect-square w-10 bg-gray-800 flex justify-center items-center">
       <BombIcon size={20} className="text-red-500" />
-    </div>
-  );
-}
-
-function FlagCell() {
-  return (
-    <div className="aspect-square w-10 bg-gray-500 flex justify-center items-center">
-      <FlagTriangleRight size={20} className="text-black" />
     </div>
   );
 }

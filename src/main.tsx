@@ -6,6 +6,7 @@ import "./index.css";
 
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
+import { AuthContextProvider } from "./components/contexts/auth-context";
 
 // Create a new router instance
 const router = createRouter({ routeTree });
@@ -26,7 +27,9 @@ if (!rootElement.innerHTML) {
   root.render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <AuthContextProvider>
+          <RouterProvider router={router} />
+        </AuthContextProvider>
       </QueryClientProvider>
     </StrictMode>,
   );
