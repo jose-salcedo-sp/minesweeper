@@ -1,5 +1,6 @@
 import { CellState, CellStateType } from "@/types";
 import { BombIcon, FlagTriangleRight, TargetIcon } from "lucide-react";
+import { JSX } from "react";
 
 type Props =
   | {
@@ -10,19 +11,23 @@ type Props =
       state: Exclude<CellStateType, typeof CellState.n>;
     };
 
+const cell_variants: Record<
+  Exclude<CellStateType, typeof CellState.n>,
+  JSX.Element
+> = {
+  [CellState.u]: <UnreveiledCell />,
+  [CellState.e]: <EmptyCell />,
+  [CellState.x]: <ExplosionCell />,
+  [CellState.f]: <FlagCell />,
+  [CellState.b]: <BombCell />,
+};
+
 export default function Cell(props: Props) {
-  if (props.state === CellState.u) {
-    return <UnreveiledCell />;
-  } else if (props.state === CellState.e) {
-    return <EmptyCell />;
-  } else if (props.state === CellState.n) {
-    return <NumberCell n={props.number} />;
-  } else if (props.state === CellState.x) {
-    return <ExplosionCell />;
-  } else if (props.state === CellState.f) {
-    return <FlagCell />;
-  } else {
-    return <BombCell />;
+  switch (props.state) {
+    case CellState.n: // Check number variant because it comes with props
+      return <NumberCell n={props.number} />;
+    default: // No need to check any of the other variants
+      return cell_variants[props.state];
   }
 }
 
