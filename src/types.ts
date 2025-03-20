@@ -1,5 +1,3 @@
-export type Identifier = "u" | "e" | "b" | "x" | "f" | number;
-
 export const CellState = {
   "u": "Unreveiled",
   "e": "Empty",
@@ -8,5 +6,7 @@ export const CellState = {
   "x": "Explosion",
   "f": "Flagged"
 } as const;
+
+export type Identifier = keyof Omit<typeof CellState, "n"> | number;
 
 export type CellStateType = (typeof CellState)[keyof typeof CellState]; // "u" | "e" | "b" | "n"

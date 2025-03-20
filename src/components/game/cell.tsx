@@ -1,5 +1,5 @@
 import { CellState, CellStateType } from "@/types";
-import { BombIcon, FlagIcon, FlagTriangleRight, TargetIcon } from "lucide-react";
+import { BombIcon, FlagTriangleRight, TargetIcon } from "lucide-react";
 
 type Props =
   | {
