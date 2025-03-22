@@ -1,3 +1,55 @@
+Buscaminas Multijugador (Minesweeper)
+¡Compite en tiempo real para descubrir quién es el mejor!
+
+Tabla de Contenidos
+  - Acerca del Proyecto
+  - Tecnologías Utilizadas
+  - Cómo Jugar
+  - Contribuidores
+
+Acerca del Proyecto
+Este proyecto es una versión multijugador del clásico Buscaminas (Minesweeper), desarrollado para la materia de Cómputo Distribuido con el profesor Juan Carlos López Pimentel.
+
+Modo de Juego: Dos jugadores se conectan a una sala y compiten para descubrir las casillas sin minas.
+Ganador: El primero que completa el tablero (o sobrevive si el oponente explota una mina).
+Servidor en C: Maneja la comunicación y el control de partidas en tiempo real.
+Cliente Web: Construido con TypeScript, Vite, HTML, CSS y TSX.
+
+Tecnologías Utilizadas
+  Lenguaje C
+  - Implementación del servidor.
+
+  TypeScript
+  - Lógica del cliente y tipado estricto.
+
+  Vite
+  - Herramienta de construcción y servidor de desarrollo para la aplicación web.
+
+  HTML / CSS / TSX
+  - Front-end interactivo y moderno.
+
+Cómo Jugar
+  Objetivo
+    Descubrir todas las casillas seguras sin detonar ninguna mina.
+
+  Multijugador
+    Crea o únete a una room para competir contra otro jugador.
+    Gana quien complete el tablero primero o si tu rival explota una mina.
+
+  Acciones Básicas
+    Click Izquierdo: Descubre la celda.
+    Click Derecho: Marca la celda como posible mina.
+
+  Estrategia
+    Observa los números para deducir dónde se encuentran las minas.
+    Asegúrate de marcar correctamente para evitar confusiones.
+
+Contribuidores / Alumnos
+- David Contreras Tiscareño
+- Héctor Emiliano Flores Castellanos
+- José Salcedo Uribe
+
+----------------------------------------------------------------------------------------------------------------
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
