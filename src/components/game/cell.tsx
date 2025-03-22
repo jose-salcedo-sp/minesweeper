@@ -61,7 +61,7 @@ function UnreveiledCell({
     <Button
       onAuxClick={markCell("f")}
       onClick={markCell("r")}
-      className="aspect-square w-10 bg-gray-500 border-2 border-gray-800 border-r-0"
+      className="aspect-square w-8 h-8 p-0 bg-gray-500 border-2 border-gray-800 border-r-0"
     ></Button>
   );
 }
@@ -75,7 +75,7 @@ function FlagCell({
     <Button
       onAuxClick={markCell("f")}
       onClick={markCell("r")}
-      className="aspect-square w-10 bg-gray-500 flex justify-center items-center"
+      className="aspect-square w-8 h-8 p-0 bg-gray-500 flex justify-center items-center"
     >
       <FlagTriangleRight size={20} className="text-black" />
     </Button>
@@ -83,7 +83,7 @@ function FlagCell({
 }
 
 function EmptyCell() {
-  return <div className="aspect-square w-10 bg-gray-800"></div>;
+  return <div className="p-0 m-0 aspect-square w-8 h-8 bg-gray-800"></div>;
 }
 
 function NumberCell({ n }: { n: number }) {

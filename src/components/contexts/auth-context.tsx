@@ -7,6 +7,8 @@ type AuthContext = {
   login: (username: string) => void;
   board: Identifier[][];
   updateBoard: (x: number, y: number, action: "r" | "f") => Promise<void>;
+  flagsMarked: number;
+  cellsDiscovered: number;
 };
 
 const default_board: Identifier[][] = [
@@ -25,6 +27,8 @@ const authContext = createContext<AuthContext>({
   board: default_board,
   login: () => {},
   updateBoard: async () => {},
+  flagsMarked: 0,
+  cellsDiscovered: 0,
 });
 
 // cliente: { name: 'pepe', room: 12345, x: 7, y: 7, action: 'f' }
@@ -36,11 +40,28 @@ export function AuthContextProvider({ children }: { children: ReactNode }) {
   const [board, setBoard] = useState<Identifier[][]>(() =>
     default_board.map((row) => [...row]),
   );
+  const [flagsMarked, setFlagsMarked] = useState(0);
+  const [cellsDiscovered, setCellsDiscovered] = useState(0);
 
   async function updateBoard(x: number, y: number, action: "f" | "r") {
-    const new_board = board.map((row) => [...row.map((cell) => cell)]);
+    const prevState = board[y][x];
+    const new_board = board.map((row) => [...row]);
 
-    new_board[y][x] = action === "r" ? "e" : "f";
+    if (action === "r") {  // Reveal action
+      if (prevState === "f") setFlagsMarked(prev => prev - 1);
+      if (prevState !== "e") setCellsDiscovered(prev => prev + 1);
+      new_board[y][x] = "e";
+    } 
+    else {  // Flag action
+      if (prevState === "u") {
+        new_board[y][x] = "f";
+        setFlagsMarked(prev => prev + 1);
+      } else if (prevState === "f") {
+        new_board[y][x] = "u";
+        setFlagsMarked(prev => prev - 1);
+      }
+    }
+
     setBoard(new_board);
   }
 
@@ -51,7 +72,7 @@ export function AuthContextProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <authContext.Provider value={{ name, login, board, updateBoard }}>
+    <authContext.Provider value={{ name, login, board, updateBoard, flagsMarked, cellsDiscovered }}>
       {children}
     </authContext.Provider>
   );
