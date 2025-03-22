@@ -44,12 +44,15 @@ Cómo Jugar
     Observa los números para deducir dónde se encuentran las minas.
     Asegúrate de marcar correctamente para evitar confusiones.
 
-Contribuidores / Alumnos
-- David Contreras Tiscareño
-- Héctor Emiliano Flores Castellanos
-- José Salcedo Uribe
+Profesor
+  - Dr. Juan Carlos López Pimentel
 
-----------------------------------------------------------------------------------------------------------------
+Contribuidores / Alumnos
+  - David Contreras Tiscareño
+  - Héctor Emiliano Flores Castellanos
+  - José Salcedo Uribe
+
+▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
