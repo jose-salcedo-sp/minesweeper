@@ -12,14 +12,14 @@ type AuthContext = {
 };
 
 const default_board: Identifier[][] = [
-  ["u", "u", "u", "u", "u", "u", "u", "u"],
-  ["u", "u", "u", "u", "u", "u", "u", "u"],
-  ["u", "u", "u", "u", "u", "u", "u", "u"],
-  ["u", "u", "u", "u", "u", "u", "u", "u"],
-  ["u", "u", "u", "u", "u", "u", "u", "u"],
-  ["u", "u", "u", "u", "u", "u", "u", "u"],
-  ["u", "u", "u", "u", "u", "u", "u", "u"],
-  ["u", "u", "u", "u", "u", "u", "u", "u"],
+  [1, "u", "u", "u", "u", "u", "u", "b"],
+  [2, "u", "u", "u", "u", "u", "u", "u"],
+  [3, "u", "u", "u", "u", "u", "u", "u"],
+  [4, "u", "u", "u", "u", "u", "u", "u"],
+  [5, "u", "u", "u", "u", "u", "u", "u"],
+  [6, "u", "u", "u", "u", "u", "u", "u"],
+  [7, "u", "u", "u", "u", "u", "u", "u"],
+  [8, "u", "u", "u", "u", "u", "u", "u"],
 ];
 
 const authContext = createContext<AuthContext>({

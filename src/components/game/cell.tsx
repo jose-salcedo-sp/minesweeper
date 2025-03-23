@@ -88,7 +88,7 @@ function EmptyCell() {
 
 function NumberCell({ n }: { n: number }) {
   return (
-    <div className="aspect-square w-10 bg-gray-800 flex justify-center items-center">
+    <div className="aspect-square w-8 h-8 bg-gray-800 flex justify-center items-center">
       <span className={`${number_colors[n - 1]}`}>{n}</span>
     </div>
   );
@@ -107,7 +107,7 @@ function ExplosionCell() {
 
 function BombCell() {
   return (
-    <div className="aspect-square w-10 bg-gray-800 flex justify-center items-center">
+    <div className="aspect-square w-8 h-8 bg-gray-800 flex justify-center items-center">
       <BombIcon size={20} className="text-red-500" />
     </div>
   );
