@@ -42,14 +42,36 @@ User mock_users[] = {
     {"alice", "qwerty"},
 };
 
-int validate_user(const char *username, const char *password) {
-  for (size_t i = 0; i < sizeof(mock_users) / sizeof(User); i++) {
-    if (strcmp(mock_users[i].username, username) == 0 &&
-        strcmp(mock_users[i].password, password) == 0) {
-      return 1; // Valid
+int validate_user(char *username, char *password) {
+  FILE *file;
+  char filename[] = "db.txt";
+
+  file = fopen(filename, "r");
+
+  if (file == NULL) {
+    printf("File does not exist or cannot be opened.\n");
+    return 0;
+  } else {
+    printf("File opened successfully.\n");
+    char line[256];
+    char file_user[128], file_pass[128];
+
+    while (fgets(line, sizeof(line), file)) {
+      line[strcspn(line, "\r\n")] = 0;
+      int parsed = sscanf(line, "%127s %127s", file_user, file_pass);
+
+      if (parsed == 2) {
+        if (strcmp(username, file_user) == 0 && strcmp(password, file_pass) == 0) {
+          fclose(file);
+          return 1; // ✅ User found
+        }
+      }
     }
+
+    fclose(file);
   }
-  return 0; // Invalid
+
+  return 0; // ❌ Not found
 }
 
 void handle_client(int client_sd, struct sockaddr_in client_addr) {
