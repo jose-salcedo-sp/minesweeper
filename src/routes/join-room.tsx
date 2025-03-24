@@ -1,49 +1,53 @@
-"use client"
-
-import { useAuth } from "@/components/contexts/auth-context"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { formOptions, useForm, useStore } from "@tanstack/react-form"
-import { createFileRoute } from "@tanstack/react-router"
-import { LoaderCircleIcon, Users } from "lucide-react"
+import { useAuth } from "@/components/contexts/auth-context";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { formOptions, useForm, useStore } from "@tanstack/react-form";
+import { createFileRoute } from "@tanstack/react-router";
+import { LoaderCircleIcon, LockIcon, UserIcon, Users } from "lucide-react";
 
 export const Route = createFileRoute("/join-room")({
   component: RouteComponent,
-})
+});
 
 type Form = {
-  name: string
-  create_room: boolean
-  room_id?: string
-}
+  name: string;
+  password: string;
+  create_room: boolean;
+  room_id?: string;
+};
 
 const formOpts = formOptions({
   defaultValues: {
     name: "",
     create_room: false,
   } as Form,
-})
+});
 
 function RouteComponent() {
-  const { login } = useAuth()
+  const { login } = useAuth();
 
   const form = useForm({
     ...formOpts,
     onSubmit: async ({ value }) => {
-      // Do something with form data
-      // const timeout = new Promise((resolve) => setTimeout(resolve, 2000));
-      // await timeout;
-
-      // console.log(value);
-      login(value.name)
+      login(value.name, value.password, value.create_room);
     },
-  })
+  });
 
-  const create_room = useStore(form.store, (state) => state.values.create_room)
+  const create_room = useStore(form.store, (state) => state.values.create_room);
 
   return (
     // Dark background gradient
@@ -52,42 +56,70 @@ function RouteComponent() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Bomb images with varied rotations and opacity */}
         <div className="absolute top-[10%] left-[15%] w-16 h-16 animate-float-slow rotate-12">
-          <img src="public/img/bomb.svg" alt="Bomb" className="w-full h-full filter-dark-red opacity-30" />
+          <img
+            src="public/img/bomb.svg"
+            alt="Bomb"
+            className="w-full h-full filter-dark-red opacity-30"
+          />
         </div>
 
         <div className="absolute top-[30%] right-[10%] w-12 h-12 animate-float-medium -rotate-15">
-          <img src="public/img/bomb.svg" alt="Bomb" className="w-full h-full filter-dark-red opacity-25" />
+          <img
+            src="public/img/bomb.svg"
+            alt="Bomb"
+            className="w-full h-full filter-dark-red opacity-25"
+          />
         </div>
 
         <div className="absolute bottom-[20%] left-[25%] w-10 h-10 animate-float-fast rotate-45">
-          <img src="public/img/bomb.svg" alt="Bomb" className="w-full h-full filter-dark-red opacity-15" />
+          <img
+            src="public/img/bomb.svg"
+            alt="Bomb"
+            className="w-full h-full filter-dark-red opacity-15"
+          />
         </div>
 
         {/* Additional bombs with different rotations */}
 
         <div className="absolute top-[55%] right-[20%] w-15 h-15 animate-float-slow-reverse -rotate-95">
-          <img src="public/img/bomb.svg" alt="Bomb" className="w-full h-full filter-dark-red opacity-25" />
+          <img
+            src="public/img/bomb.svg"
+            alt="Bomb"
+            className="w-full h-full filter-dark-red opacity-25"
+          />
         </div>
 
         {/* Flag SVGs with dark green color, varied rotations and opacity */}
         <div className="absolute top-[25%] right-[70%] w-10 h-10 animate-float-medium rotate-70">
           <svg viewBox="0 0 24 24" className="w-full h-full opacity-20">
             <rect x="6" y="2" width="2" height="20" fill="#555" />
-            <path d="M8,4 L18,4 L16,9 L18,14 L8,14 Z" fill="#8b0000" fillOpacity="0.9" />
+            <path
+              d="M8,4 L18,4 L16,9 L18,14 L8,14 Z"
+              fill="#8b0000"
+              fillOpacity="0.9"
+            />
           </svg>
         </div>
 
         <div className="absolute top-[20%] right-[20%] w-14 h-14 animate-float-medium rotate-12">
           <svg viewBox="0 0 24 24" className="w-full h-full opacity-20">
             <rect x="6" y="2" width="2" height="20" fill="#555" />
-            <path d="M8,4 L18,4 L16,9 L18,14 L8,14 Z" fill="#1b5e20" fillOpacity="0.9" />
+            <path
+              d="M8,4 L18,4 L16,9 L18,14 L8,14 Z"
+              fill="#1b5e20"
+              fillOpacity="0.9"
+            />
           </svg>
         </div>
 
         <div className="absolute bottom-[15%] right-[25%] w-10 h-10 animate-float-slow -rotate-30">
           <svg viewBox="0 0 24 24" className="w-full h-full opacity-25">
             <rect x="6" y="2" width="2" height="20" fill="#555" />
-            <path d="M8,4 L18,4 L16,9 L18,14 L8,14 Z" fill="#8b0000" fillOpacity="0.4" />
+            <path
+              d="M8,4 L18,4 L16,9 L18,14 L8,14 Z"
+              fill="#8b0000"
+              fillOpacity="0.4"
+            />
           </svg>
         </div>
 
@@ -95,14 +127,22 @@ function RouteComponent() {
         <div className="absolute top-[50%] left-[10%] w-20 h-20 animate-float-medium-reverse rotate-30">
           <svg viewBox="0 0 24 24" className="w-full h-full opacity-15">
             <rect x="6" y="2" width="2" height="20" fill="#555" />
-            <path d="M8,4 L18,4 L16,9 L18,14 L8,14 Z" fill="#1b5e20" fillOpacity="0.7" />
+            <path
+              d="M8,4 L18,4 L16,9 L18,14 L8,14 Z"
+              fill="#1b5e20"
+              fillOpacity="0.7"
+            />
           </svg>
         </div>
 
         <div className="absolute top-[15%] left-[40%] w-6 h-6 animate-float-fast-reverse -rotate-10">
           <svg viewBox="0 0 24 24" className="w-full h-full opacity-10">
             <rect x="6" y="2" width="2" height="20" fill="#555" />
-            <path d="M8,4 L18,4 L16,9 L18,14 L8,14 Z" fill="#1b5e20" fillOpacity="0.7" />
+            <path
+              d="M8,4 L18,4 L16,9 L18,14 L8,14 Z"
+              fill="#1b5e20"
+              fillOpacity="0.7"
+            />
           </svg>
         </div>
 
@@ -114,7 +154,11 @@ function RouteComponent() {
       <Card className="w-full max-w-md relative backdrop-blur-sm bg-gray-900/90 border-gray-800 shadow-2xl">
         {/* Decorative corner elements with bomb SVG */}
         <div className="absolute -top-3 -left-3 w-6 h-6 bg-gray-800 rounded-full flex items-center justify-center shadow-lg">
-          <img src="public/img/bomb.svg" alt="Bomb" className="w-3 h-3 filter-dark-red" />
+          <img
+            src="public/img/bomb.svg"
+            alt="Bomb"
+            className="w-3 h-3 filter-dark-red"
+          />
         </div>
         <div className="absolute -top-3 -right-3 w-6 h-6 bg-gray-800 rounded-full flex items-center justify-center shadow-lg">
           <svg viewBox="0 0 24 24" className="w-3 h-3">
@@ -129,7 +173,11 @@ function RouteComponent() {
           </svg>
         </div>
         <div className="absolute -bottom-3 -right-3 w-6 h-6 bg-gray-800 rounded-full flex items-center justify-center shadow-lg">
-          <img src="public/img/bomb.svg" alt="Bomb" className="w-3 h-3 filter-dark-red" />
+          <img
+            src="public/img/bomb.svg"
+            alt="Bomb"
+            className="w-3 h-3 filter-dark-red"
+          />
         </div>
 
         {/* Card header */}
@@ -143,7 +191,8 @@ function RouteComponent() {
             {create_room ? "Join Room" : "Create Room"}
           </CardTitle>
           <CardDescription className="text-center text-gray-300">
-            Enter your details to {create_room ? "join" : "create"} a minesweeper game room
+            Enter your details to {create_room ? "join" : "create"} a
+            minesweeper game room
           </CardDescription>
         </CardHeader>
 
@@ -151,14 +200,17 @@ function RouteComponent() {
           <form
             className="flex flex-col gap-5"
             onSubmit={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              form.handleSubmit()
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
             }}
           >
             {/* Username field */}
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-sm font-medium text-gray-200">
+              <Label
+                htmlFor="username"
+                className="text-sm font-medium text-gray-200"
+              >
                 Your Username
               </Label>
               <div className="relative">
@@ -176,20 +228,36 @@ function RouteComponent() {
                   )}
                 />
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
+                    <UserIcon size={20} />
+                </div>
+              </div>
+            </div>
+
+            {/* Password field */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="username"
+                className="text-sm font-medium text-gray-200"
+              >
+                Your Password
+              </Label>
+              <div className="relative">
+                <form.Field
+                  name="password"
+                  children={(field) => (
+                    <Input
+                      id="password"
+                      className="pl-10 bg-gray-800 border-gray-700 focus:border-blue-500 transition-colors text-white"
+                      placeholder="Enter your password"
+                      type="password"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                  )}
+                />
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <LockIcon size={20} />
                 </div>
               </div>
             </div>
@@ -200,8 +268,13 @@ function RouteComponent() {
                 name="create_room"
                 children={(field) => (
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="join-room" className="text-sm font-medium cursor-pointer text-gray-200">
-                      {field.state.value ? "Join existing room" : "Create new room"}
+                    <Label
+                      htmlFor="join-room"
+                      className="text-sm font-medium cursor-pointer text-gray-200"
+                    >
+                      {field.state.value
+                        ? "Join existing room"
+                        : "Create new room"}
                     </Label>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-400">Create</span>
@@ -221,7 +294,9 @@ function RouteComponent() {
             {/* Room ID input */}
             {create_room && (
               <div className="space-y-3">
-                <Label className="text-sm font-medium text-center block text-gray-200">Enter Room Code</Label>
+                <Label className="text-sm font-medium text-center block text-gray-200">
+                  Enter Room Code
+                </Label>
                 <form.Field
                   name="room_id"
                   children={(field) => (
@@ -278,14 +353,21 @@ function RouteComponent() {
                       {/* Flag SVG with dark green */}
                       <svg viewBox="0 0 24 24" className="w-4 h-4 mr-2">
                         <rect x="6" y="2" width="2" height="20" fill="gray" />
-                        <path d="M8,4 L18,4 L16,9 L18,14 L8,14 Z" fill="green" />
+                        <path
+                          d="M8,4 L18,4 L16,9 L18,14 L8,14 Z"
+                          fill="green"
+                        />
                       </svg>
                       Join Game
                     </>
                   ) : (
                     <>
                       {/* Bomb SVG */}
-                      <img src="public/img/bomb.svg" alt="Bomb" className="w-4 h-4 mr-2 filter-dark-red" />
+                      <img
+                        src="public/img/bomb.svg"
+                        alt="Bomb"
+                        className="w-4 h-4 mr-2 filter-dark-red"
+                      />
                       Create Game
                     </>
                   )}
@@ -303,6 +385,5 @@ function RouteComponent() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
-

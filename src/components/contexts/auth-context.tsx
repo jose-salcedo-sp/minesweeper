@@ -1,10 +1,11 @@
 import { Identifier } from "@/types";
+import { useMutation } from "@tanstack/react-query";
 import { ReactNode } from "@tanstack/react-router";
 import { createContext, useContext, useState } from "react";
 
 type AuthContext = {
   name: string;
-  login: (username: string) => void;
+  login: (username: string, password: string, new_room: boolean) => Promise<void>;
   board: Identifier[][];
   updateBoard: (x: number, y: number, action: "r" | "f") => Promise<void>;
   flagsMarked: number;
@@ -73,10 +74,25 @@ export function AuthContextProvider({ children }: { children: ReactNode }) {
   async function updateBoard(x: number, y: number, action: "f" | "r") {
   }
 
-  async function login() {
-    const res = await (await fetch("http://localhost:3001/api/tcp")).json();
+  const loginMutation = useMutation({
+    mutationFn: (action: LOGIN) => {
+      return fetch("http://localhost:3001/api/tcp", { method: "POST", body: JSON.stringify(action) });
+    },
+  });
 
-    console.log(res);
+  async function login(username: string, password: string, new_room: boolean) {
+    try {
+        const a = await loginMutation.mutateAsync({
+            type: 'LOGIN',
+            password,
+            username,
+            new_room,
+        });
+
+        console.log(a);
+    } catch (err) {
+        console.error(err);
+    }
   }
 
   return (
