@@ -109,9 +109,10 @@ class TCPClient {
 const tcpClient = TCPClient.getInstance();
 
 // Hono API Route
-app.get("/api/tcp", async (c) => {
+app.post("/api/tcp", async (c) => {
+  const body = await c.req.text();
   try {
-    const response = await tcpClient.sendMessage("prop");
+    const response = await tcpClient.sendMessage(body);
     return c.json({ message: "Response from TCP server", data: response });
   } catch (error) {
     return c.json(

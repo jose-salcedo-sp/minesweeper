@@ -34,6 +34,33 @@ const authContext = createContext<AuthContext>({
 // cliente: { name: 'pepe', room: 12345, x: 7, y: 7, action: 'f' }
 //
 // server: uu78f...
+// ACTION { msg_type: 'ACTION', username: 'pepe', action: 'r', x: '5', y: '6' } -> { success: true | false, board: char[64], state: 'w' | 'd' | 'g' }
+// LOGIN { msg_type: 'LOGIN', username: 'pepe', password: '12345', new_room: true | false } -> { success: true | false }
+// REGISTER { msg_type: 'REGISTER', username: 'pepe', password: '12345' } -> { sucess: true | false }
+type ACTION_HEADER = {
+  username: string;
+};
+
+type MOVE = {
+  type: "MOVE";
+  action: "r" | "f";
+  x: number;
+  y: number;
+} & ACTION_HEADER;
+
+type LOGIN = {
+  type: "LOGIN";
+  password: string;
+  new_room: boolean;
+  room_id?: number;
+} & ACTION_HEADER;
+
+type REGISTER = {
+  type: "REGISTER";
+  password: string;
+} & ACTION_HEADER;
+
+export type ACTIONS = MOVE | LOGIN | REGISTER;
 
 export function AuthContextProvider({ children }: { children: ReactNode }) {
   const [name, setName] = useState("");
@@ -44,35 +71,18 @@ export function AuthContextProvider({ children }: { children: ReactNode }) {
   const [cellsDiscovered, setCellsDiscovered] = useState(0);
 
   async function updateBoard(x: number, y: number, action: "f" | "r") {
-    const prevState = board[y][x];
-    const new_board = board.map((row) => [...row]);
-
-    if (action === "r") {  // Reveal action
-      if (prevState === "f") setFlagsMarked(prev => prev - 1);
-      if (prevState !== "e") setCellsDiscovered(prev => prev + 1);
-      new_board[y][x] = "e";
-    } 
-    else {  // Flag action
-      if (prevState === "u") {
-        new_board[y][x] = "f";
-        setFlagsMarked(prev => prev + 1);
-      } else if (prevState === "f") {
-        new_board[y][x] = "u";
-        setFlagsMarked(prev => prev - 1);
-      }
-    }
-
-    setBoard(new_board);
   }
 
   async function login() {
-      const res = await (await fetch("http://localhost:3001/api/tcp")).json();
+    const res = await (await fetch("http://localhost:3001/api/tcp")).json();
 
-      console.log(res);
+    console.log(res);
   }
 
   return (
-    <authContext.Provider value={{ name, login, board, updateBoard, flagsMarked, cellsDiscovered }}>
+    <authContext.Provider
+      value={{ name, login, board, updateBoard, flagsMarked, cellsDiscovered }}
+    >
       {children}
     </authContext.Provider>
   );

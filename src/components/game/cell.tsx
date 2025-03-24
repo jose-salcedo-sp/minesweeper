@@ -1,7 +1,8 @@
 import { CellState, CellStateType } from "@/types";
 import { BombIcon, FlagTriangleRight, TargetIcon } from "lucide-react";
 import { Button } from "../ui/button";
-import { useAuth } from "../contexts/auth-context";
+import { useAuth, type ACTIONS } from "../contexts/auth-context";
+import { useMutation } from "@tanstack/react-query";
 
 type Props = {
   x: number;
@@ -17,11 +18,28 @@ type Props = {
 );
 
 export default function Cell(props: Props) {
-  const { updateBoard } = useAuth();
+  const { name } = useAuth();
+
+  const mutation = useMutation({
+    mutationFn: (action: ACTIONS) => {
+      return fetch("http://localhost:3001/api/tcp", { method: "POST", body: JSON.stringify(action) });
+    },
+  });
 
   function markCell(action: "r" | "f") {
     return async () => {
-      await updateBoard(props.x, props.y, action);
+      try {
+        const result = await mutation.mutateAsync({
+          type: "MOVE",
+          username: name,
+          action,
+          x: props.x,
+          y: props.y,
+        });
+        console.log(result);
+      } catch (err) {
+        console.error(err);
+      }
     };
   }
 
