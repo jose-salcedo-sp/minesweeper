@@ -1,6 +1,7 @@
 #include "cjson/cJSON.h"
 #include "rooms/rooms.h"
 #include <arpa/inet.h>
+#include <iso646.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <signal.h>
@@ -16,10 +17,12 @@
 #define MSG_SIZE 2048
 #define PORT 5000
 
+Room **rooms;
+
 #define SERVER_LOG(type, fmt, ...)                                             \
   do {                                                                         \
     if (strcmp(type, "start") == 0)                                            \
-      printf("🛠  " fmt "...\n", ##__VA_ARGS__);                                \
+      printf("🔀  " fmt "...\n", ##__VA_ARGS__);                               \
     else if (strcmp(type, "success") == 0)                                     \
       printf("✅  " fmt "\n", ##__VA_ARGS__);                                  \
     else if (strcmp(type, "error") == 0)                                       \
@@ -89,7 +92,18 @@ int create_user(char *username, char *password) {
   return 1;
 }
 
-void handle_client(int client_sd, struct sockaddr_in client_addr) {
+// Shared between parent and child
+struct client_info {
+  int client_sd;
+  struct sockaddr_in client_addr;
+  int room_id;
+};
+
+void handle_client(struct client_info info, Room **rooms) {
+  int client_sd = info.client_sd;
+  struct sockaddr_in client_addr = info.client_addr;
+  int room_id = info.room_id;
+  Room *room = rooms[room_id];
   char msg[MSG_SIZE];
   char authenticated_user[MSG_SIZE] = {0};
 
@@ -129,32 +143,10 @@ void handle_client(int client_sd, struct sockaddr_in client_addr) {
                 sizeof(authenticated_user) - 1);
         SERVER_LOG("success", "Authenticated user '%s'", authenticated_user);
 
-        int room_id = -1, joined = -1;
-        Room *room = NULL;
-        cJSON *new_room = cJSON_GetObjectItemCaseSensitive(root, "new_room");
-
-        if (cJSON_IsBool(new_room) && cJSON_IsTrue(new_room)) {
-          SERVER_LOG("start", "User '%s' is creating a new room",
-                     authenticated_user);
-          room_id = assign_room();
-          if (room_id != -1) {
-            room = rooms[room_id];
-            joined = 0;
-          }
-        } else {
-          cJSON *room_id_json =
-              cJSON_GetObjectItemCaseSensitive(root, "room_id");
-          if (cJSON_IsNumber(room_id_json)) {
-            room_id = room_id_json->valueint;
-            if (room_id >= 0 && room_id < MAX_ROOMS && rooms[room_id]) {
-              room = rooms[room_id];
-              joined = try_join_room(room, getpid());
-            }
-          }
-        }
+        int joined = try_join_room(room, getpid());
 
         cJSON *res = cJSON_CreateObject();
-        if (room && joined != -1) {
+        if (joined != -1) {
           SERVER_LOG("success", "User '%s' joined room #%d as pid_%d",
                      authenticated_user, room_id, joined + 1);
           SERVER_LOG("info", "Room #%d: pid_1 = %d, pid_2 = %d", room_id,
@@ -162,7 +154,7 @@ void handle_client(int client_sd, struct sockaddr_in client_addr) {
           cJSON_AddBoolToObject(res, "success", 1);
           cJSON_AddNumberToObject(res, "room_id", room_id);
         } else {
-          SERVER_LOG("error", "Failed to join or create room");
+          SERVER_LOG("error", "Failed to join room #%d", room_id);
           cJSON_AddBoolToObject(res, "success", 0);
         }
 
@@ -202,6 +194,16 @@ void handle_client(int client_sd, struct sockaddr_in client_addr) {
 }
 
 int main() {
+  rooms = mmap(NULL, sizeof(Room *) * MAX_ROOMS, PROT_READ | PROT_WRITE,
+               MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+  if (rooms == MAP_FAILED) {
+    perror("mmap for rooms array failed");
+    exit(1);
+  }
+
+  memset(rooms, 0, sizeof(Room *) * MAX_ROOMS);
+
   if (signal(SIGINT, aborta_handler) == SIG_ERR) {
     perror("Could not set signal handler");
     return 1;
@@ -231,6 +233,10 @@ int main() {
 
   SERVER_LOG("success", "Server is listening on port %d", PORT);
 
+  // Temporary: always use room 0 for testing
+  int room_id = 0;
+  rooms[room_id] = create_room();
+
   while (1) {
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
@@ -244,7 +250,10 @@ int main() {
     pid_t pid = fork();
     if (pid == 0) {
       close(sd);
-      handle_client(client_sd, client_addr);
+      struct client_info info = {.client_sd = client_sd,
+                                 .client_addr = client_addr,
+                                 .room_id = room_id};
+      handle_client(info, rooms);
     } else if (pid > 0) {
       close(client_sd);
       SERVER_LOG("info", "Created child process %d for new connection", pid);

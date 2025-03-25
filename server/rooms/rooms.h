@@ -2,12 +2,7 @@
 #define ROOMS_H
 
 #include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/mman.h>
-#include <sys/wait.h>
-#include <unistd.h>
+#include <sys/types.h>
 
 #define MAX_ROOMS 1000
 
@@ -26,11 +21,9 @@ typedef struct {
   Game game_2;
 } Room;
 
-extern Room *rooms[MAX_ROOMS];
-
 Room *create_room();
 void destroy_room(Room *room);
-int assign_room();
+int assign_room(Room **rooms);
 int try_join_room(Room *room, pid_t pid);
 
-#endif // ROOMS_H
+#endif

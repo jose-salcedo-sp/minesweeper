@@ -23,8 +23,6 @@ typedef struct {
   Game game_2;
 } Room;
 
-Room *rooms[MAX_ROOMS];
-
 Room *create_room() {
   Room *room = mmap(NULL, sizeof(Room), PROT_READ | PROT_WRITE,
                     MAP_SHARED | MAP_ANONYMOUS, -1, 0);
@@ -54,12 +52,12 @@ void destroy_room(Room *room) {
   munmap(room, sizeof(Room));
 }
 
-int assign_room() {
+int assign_room(Room **rooms) {
   int i = 0;
   while (rooms[i] != NULL && i < MAX_ROOMS)
     i++; // find empty room
   if (i >= MAX_ROOMS)
-    return -1; // no empty rooms, operation unsuccessful
+    return -1;                // no empty rooms, operation unsuccessful
   rooms[i] = create_room();   // assign pointer to room
   rooms[i]->pid_1 = getpid(); // assign user pid
 
