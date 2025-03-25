@@ -1,6 +1,8 @@
 #include "cjson/cJSON.h"
+#include "rooms/rooms.h"
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,13 +29,6 @@
   } while (0)
 
 int sd;
-
-typedef struct {
-  int pid1;
-  int pid2;
-} Game;
-
-Game *global_game; // shared across processes
 
 void aborta_handler(int sig) {
   SERVER_LOG("start", "Server shutting down");
@@ -104,17 +99,15 @@ void handle_client(int client_sd, struct sockaddr_in client_addr) {
   while (1) {
     int bytes_received = recv(client_sd, msg, sizeof(msg) - 1, 0);
     if (bytes_received <= 0) {
-      if (bytes_received == 0) {
+      if (bytes_received == 0)
         SERVER_LOG("success", "Client disconnected");
-      } else {
+      else
         perror("Receive failed");
-      }
       break;
     }
 
     msg[bytes_received] = '\0';
     trim_newline(msg);
-
     cJSON *root = cJSON_Parse(msg);
     if (!root) {
       SERVER_LOG("error", "Malformed request");
@@ -126,53 +119,70 @@ void handle_client(int client_sd, struct sockaddr_in client_addr) {
     cJSON *username = cJSON_GetObjectItemCaseSensitive(root, "username");
     cJSON *password = cJSON_GetObjectItemCaseSensitive(root, "password");
 
-    if (authenticated_user[0] == '\0') {
-      if (cJSON_IsString(type) && strcmp(type->valuestring, "LOGIN") == 0 &&
-          cJSON_IsString(username) && cJSON_IsString(password)) {
+    if (authenticated_user[0] == '\0' && cJSON_IsString(type) &&
+        cJSON_IsString(username) && cJSON_IsString(password)) {
 
-        if (validate_user(username->valuestring, password->valuestring)) {
-          strncpy(authenticated_user, username->valuestring,
-                  sizeof(authenticated_user) - 1);
-          SERVER_LOG("success", "Authenticated user '%s'", authenticated_user);
+      if (strcmp(type->valuestring, "LOGIN") == 0 &&
+          validate_user(username->valuestring, password->valuestring)) {
 
-          if (global_game->pid1 == -1) {
-            global_game->pid1 = getpid();
-            SERVER_LOG("success", "Fit %s into game 1 as pid1",
-                       authenticated_user);
-          } else if (global_game->pid2 == -1) {
-            global_game->pid2 = getpid();
-            SERVER_LOG("success", "Fit %s into game 1 as pid2",
-                       authenticated_user);
-          } else {
-            SERVER_LOG("error", "Can't fit more players into one game");
-            send(client_sd, "GAME FULL\n", 10, 0);
-            cJSON_Delete(root);
-            continue;
+        strncpy(authenticated_user, username->valuestring,
+                sizeof(authenticated_user) - 1);
+        SERVER_LOG("success", "Authenticated user '%s'", authenticated_user);
+
+        int room_id = -1, joined = -1;
+        Room *room = NULL;
+        cJSON *new_room = cJSON_GetObjectItemCaseSensitive(root, "new_room");
+
+        if (cJSON_IsBool(new_room) && cJSON_IsTrue(new_room)) {
+          SERVER_LOG("start", "User '%s' is creating a new room",
+                     authenticated_user);
+          room_id = assign_room();
+          if (room_id != -1) {
+            room = rooms[room_id];
+            joined = 0;
           }
+        } else {
+          cJSON *room_id_json =
+              cJSON_GetObjectItemCaseSensitive(root, "room_id");
+          if (cJSON_IsNumber(room_id_json)) {
+            room_id = room_id_json->valueint;
+            if (room_id >= 0 && room_id < MAX_ROOMS && rooms[room_id]) {
+              room = rooms[room_id];
+              joined = try_join_room(room, getpid());
+            }
+          }
+        }
 
-          SERVER_LOG("info", "Game.pid1 = %d", global_game->pid1);
-          SERVER_LOG("info", "Game.pid2 = %d", global_game->pid2);
-          send(client_sd, "LOGIN OK\n", 9, 0);
+        cJSON *res = cJSON_CreateObject();
+        if (room && joined != -1) {
+          SERVER_LOG("success", "User '%s' joined room #%d as pid_%d",
+                     authenticated_user, room_id, joined + 1);
+          SERVER_LOG("info", "Room #%d: pid_1 = %d, pid_2 = %d", room_id,
+                     room->pid_1, room->pid_2);
+          cJSON_AddBoolToObject(res, "success", 1);
+          cJSON_AddNumberToObject(res, "room_id", room_id);
         } else {
-          SERVER_LOG("error", "Invalid credentials for '%s'",
-                     username->valuestring);
-          send(client_sd, "LOGIN FAILED\n", 13, 0);
+          SERVER_LOG("error", "Failed to join or create room");
+          cJSON_AddBoolToObject(res, "success", 0);
         }
-      } else if (cJSON_IsString(type) &&
-                 strcmp(type->valuestring, "REGISTER") == 0 &&
-                 cJSON_IsString(username) && cJSON_IsString(password)) {
-        if (create_user(username->valuestring, password->valuestring)) {
-          send(client_sd, "REGISTERED\n", 11, 0);
-        } else {
-          send(client_sd, "REGISTRATION FAILED\n", 20, 0);
-        }
+
+        const char *json = cJSON_PrintUnformatted(res);
+        send(client_sd, json, strlen(json), 0);
+        cJSON_Delete(res);
+        cJSON_Delete(root);
+        continue;
       }
 
-      cJSON_Delete(root);
-      continue;
+      if (strcmp(type->valuestring, "REGISTER") == 0) {
+        if (create_user(username->valuestring, password->valuestring))
+          send(client_sd, "REGISTERED\n", 11, 0);
+        else
+          send(client_sd, "REGISTRATION FAILED\n", 20, 0);
+        cJSON_Delete(root);
+        continue;
+      }
     }
 
-    // Authenticated commands
     if (strcmp(msg, "close") == 0) {
       SERVER_LOG("info", "User '%s' requested to close", authenticated_user);
       break;
@@ -181,11 +191,7 @@ void handle_client(int client_sd, struct sockaddr_in client_addr) {
     char response[MSG_SIZE + 64];
     snprintf(response, sizeof(response), "[%s] Echo: %s\n", authenticated_user,
              msg);
-    if (send(client_sd, response, strlen(response), 0) == -1) {
-      perror("Send failed");
-      break;
-    }
-
+    send(client_sd, response, strlen(response), 0);
     cJSON_Delete(root);
   }
 
@@ -196,18 +202,6 @@ void handle_client(int client_sd, struct sockaddr_in client_addr) {
 }
 
 int main() {
-  // Set up shared game before forking
-  global_game = mmap(NULL, sizeof(Game), PROT_READ | PROT_WRITE,
-                     MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-
-  if (global_game == MAP_FAILED) {
-    perror("mmap failed");
-    return 1;
-  }
-
-  global_game->pid1 = -1;
-  global_game->pid2 = -1;
-
   if (signal(SIGINT, aborta_handler) == SIG_ERR) {
     perror("Could not set signal handler");
     return 1;

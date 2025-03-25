@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -pedantic -std=c99
 INCLUDES = -Icjson
-SRC = server.c cjson/cJSON.c
+SRC = server.c cjson/cJSON.c rooms/rooms.c
 OBJ = $(SRC:.c=.o)
 TARGET = server
 
@@ -15,4 +15,3 @@ $(TARGET): $(OBJ)
 
 clean:
 	rm -f $(OBJ) $(TARGET)
-
