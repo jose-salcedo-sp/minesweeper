@@ -25,3 +25,6 @@ dist-ssr
 
 # Object files
 *.o
+
+# "DB"
+db.txt

@@ -5,7 +5,12 @@ import { createContext, useContext, useState } from "react";
 
 type AuthContext = {
   name: string;
-  login: (username: string, password: string, new_room: boolean) => Promise<void>;
+  login: (
+    username: string,
+    password: string,
+    new_room: boolean,
+  ) => Promise<void>;
+  register: (username: string, password: string) => Promise<void>;
   board: Identifier[][];
   updateBoard: (x: number, y: number, action: "r" | "f") => Promise<void>;
   flagsMarked: number;
@@ -71,33 +76,66 @@ export function AuthContextProvider({ children }: { children: ReactNode }) {
   const [flagsMarked, setFlagsMarked] = useState(0);
   const [cellsDiscovered, setCellsDiscovered] = useState(0);
 
-  async function updateBoard(x: number, y: number, action: "f" | "r") {
-  }
+  async function updateBoard(x: number, y: number, action: "f" | "r") {}
 
   const loginMutation = useMutation({
     mutationFn: (action: LOGIN) => {
-      return fetch("http://localhost:3001/api/tcp", { method: "POST", body: JSON.stringify(action) });
+      return fetch("http://localhost:3001/api/tcp", {
+        method: "POST",
+        body: JSON.stringify(action),
+      });
+    },
+  });
+
+  const registerMutation = useMutation({
+    mutationFn: (action: REGISTER) => {
+      return fetch("http://localhost:3001/api/tcp", {
+        method: "POST",
+        body: JSON.stringify(action),
+      });
     },
   });
 
   async function login(username: string, password: string, new_room: boolean) {
     try {
-        const a = await loginMutation.mutateAsync({
-            type: 'LOGIN',
-            password,
-            username,
-            new_room,
-        });
+      const a = await loginMutation.mutateAsync({
+        type: "LOGIN",
+        password,
+        username,
+        new_room,
+      });
 
-        console.log(a);
+      console.log(a);
     } catch (err) {
-        console.error(err);
+      console.error(err);
+    }
+  }
+
+  async function register(username: string, password: string) {
+    try {
+      const a = await registerMutation.mutateAsync({
+        type: "REGISTER",
+        username,
+        password,
+      });
+
+      console.log(a);
+    } catch (err) {
+      console.error(err);
     }
   }
 
   return (
     <authContext.Provider
-      value={{ name, login, board, updateBoard, flagsMarked, cellsDiscovered }}
+      value={{
+        name,
+        login,
+        register,
+        board,
+        updateBoard,
+        flagsMarked,
+        cellsDiscovered,
+      }}
     >
       {children}
     </authContext.Provider>

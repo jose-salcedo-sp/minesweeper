@@ -13,10 +13,22 @@
 #define MSG_SIZE 2048
 #define PORT 5000
 
+#define SERVER_LOG(type, fmt, ...)                                             \
+  do {                                                                         \
+    if (strcmp(type, "start") == 0)                                            \
+      printf("🛠  " fmt "...\n", ##__VA_ARGS__);                                \
+    else if (strcmp(type, "success") == 0)                                     \
+      printf("✅  " fmt "\n", ##__VA_ARGS__);                                  \
+    else if (strcmp(type, "error") == 0)                                       \
+      fprintf(stderr, "❌  " fmt "\n", ##__VA_ARGS__);                         \
+    else                                                                       \
+      printf("ℹ️  " fmt "\n", ##__VA_ARGS__);                                   \
+  } while (0)
+
 int sd;
 
 void aborta_handler(int sig) {
-  printf("\nServer shutting down...\n");
+  SERVER_LOG("start", "Server shutting down");
   close(sd);
   exit(0);
 }
@@ -36,12 +48,6 @@ typedef struct {
   const char *password;
 } User;
 
-User mock_users[] = {
-    {"pepe", "pass"},
-    {"admin", "admin123"},
-    {"alice", "qwerty"},
-};
-
 int validate_user(char *username, char *password) {
   FILE *file;
   char filename[] = "db.txt";
@@ -49,10 +55,10 @@ int validate_user(char *username, char *password) {
   file = fopen(filename, "r");
 
   if (file == NULL) {
-    printf("File does not exist or cannot be opened.\n");
+    SERVER_LOG("error", "File does not exist or cannot be opened");
     return 0;
   } else {
-    printf("File opened successfully.\n");
+    SERVER_LOG("success", "File opened successfully");
     char line[256];
     char file_user[128], file_pass[128];
 
@@ -61,7 +67,8 @@ int validate_user(char *username, char *password) {
       int parsed = sscanf(line, "%127s %127s", file_user, file_pass);
 
       if (parsed == 2) {
-        if (strcmp(username, file_user) == 0 && strcmp(password, file_pass) == 0) {
+        if (strcmp(username, file_user) == 0 &&
+            strcmp(password, file_pass) == 0) {
           fclose(file);
           return 1; // ✅ User found
         }
@@ -74,18 +81,38 @@ int validate_user(char *username, char *password) {
   return 0; // ❌ Not found
 }
 
+int create_user(char *username, char *password) {
+  // First, check if user already exists
+  if (validate_user(username, password)) {
+    SERVER_LOG("error", "User '%s' already exists", username);
+    return 0;
+  }
+
+  FILE *file = fopen("db.txt", "a");
+  if (file == NULL) {
+    SERVER_LOG("error", "Could not open db.txt for writing");
+    return 0;
+  }
+
+  fprintf(file, "%s %s\n", username, password);
+  fclose(file);
+
+  SERVER_LOG("success", "User '%s' created successfully", username);
+  return 1;
+}
+
 void handle_client(int client_sd, struct sockaddr_in client_addr) {
   char msg[MSG_SIZE];
   char authenticated_user[MSG_SIZE] = {0};
 
-  printf("Child process %d handling client %s:%d\n", getpid(),
-         inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+  SERVER_LOG("success", "Accepted connection from %s:%d",
+             inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
   while (1) {
     int bytes_received = recv(client_sd, msg, sizeof(msg) - 1, 0);
     if (bytes_received <= 0) {
       if (bytes_received == 0) {
-        printf("Client disconnected\n");
+        SERVER_LOG("success", "Client disconnected");
       } else {
         perror("Receive failed");
       }
@@ -95,43 +122,51 @@ void handle_client(int client_sd, struct sockaddr_in client_addr) {
     msg[bytes_received] = '\0';
     trim_newline(msg);
 
-    printf("Received: %s\n", msg);
+    cJSON *root = cJSON_Parse(msg);
 
-    // Not authenticated yet
+    if (!root) {
+      SERVER_LOG("error", "Malformed request");
+      send(client_sd, "ERROR: Invalid LOGIN payload\n", 30, 0);
+      continue;
+    }
+
+    cJSON *type = cJSON_GetObjectItemCaseSensitive(root, "type");
+
     if (authenticated_user[0] == '\0') {
-      cJSON *root = cJSON_Parse(msg);
-      if (root) {
-        cJSON *type = cJSON_GetObjectItemCaseSensitive(root, "type");
-        cJSON *username = cJSON_GetObjectItemCaseSensitive(root, "username");
-        cJSON *password = cJSON_GetObjectItemCaseSensitive(root, "password");
+      cJSON *username = cJSON_GetObjectItemCaseSensitive(root, "username");
+      cJSON *password = cJSON_GetObjectItemCaseSensitive(root, "password");
 
-        if (cJSON_IsString(type) && strcmp(type->valuestring, "LOGIN") == 0 &&
-            cJSON_IsString(username) && cJSON_IsString(password)) {
+      if (cJSON_IsString(type) && strcmp(type->valuestring, "LOGIN") == 0 &&
+          cJSON_IsString(username) && cJSON_IsString(password)) {
 
-          if (validate_user(username->valuestring, password->valuestring)) {
-            strncpy(authenticated_user, username->valuestring,
-                    sizeof(authenticated_user) - 1);
-            printf("✅ Authenticated user '%s'\n", authenticated_user);
-            send(client_sd, "LOGIN OK\n", 9, 0);
-          } else {
-            printf("❌ Invalid credentials for '%s'\n", username->valuestring);
-            send(client_sd, "LOGIN FAILED\n", 13, 0);
-          }
+        if (validate_user(username->valuestring, password->valuestring)) {
+          strncpy(authenticated_user, username->valuestring,
+                  sizeof(authenticated_user) - 1);
+          SERVER_LOG("success", "Authenticated user '%s'", authenticated_user);
+          send(client_sd, "LOGIN OK", 9, 0);
         } else {
-          send(client_sd, "ERROR: Invalid LOGIN payload\n", 30, 0);
+          SERVER_LOG("error", "Invalid credentials for '%s'",
+                     username->valuestring);
+          send(client_sd, "LOGIN FAILED", 13, 0);
         }
-
-        cJSON_Delete(root);
-      } else {
-        send(client_sd, "ERROR: Malformed JSON\n", 23, 0);
+      } else if (cJSON_IsString(type) &&
+                 strcmp(type->valuestring, "REGISTER") == 0 &&
+                 cJSON_IsString(username) && cJSON_IsString(password)) {
+        if (create_user(username->valuestring, password->valuestring)) {
+          send(client_sd, "REGISTERED", 11, 0);
+        } else {
+          send(client_sd, "REGISTRATION FAILED", 20, 0);
+        }
       }
 
-      continue;
+      cJSON_Delete(root);
+    } else {
+      send(client_sd, "ERROR: Malformed JSON", 23, 0);
     }
 
     // Authenticated commands
     if (strcmp(msg, "close") == 0) {
-      printf("User '%s' requested to close\n", authenticated_user);
+      SERVER_LOG("info", "User '%s' requested to close", authenticated_user);
       break;
     }
 
@@ -146,8 +181,8 @@ void handle_client(int client_sd, struct sockaddr_in client_addr) {
   }
 
   close(client_sd);
-  printf("Child process %d (user '%s') exiting\n", getpid(),
-         authenticated_user);
+  SERVER_LOG("success", "Child process %d (user '%s') exiting", getpid(),
+             authenticated_user);
   exit(0);
 }
 
@@ -179,7 +214,7 @@ int main() {
     return 1;
   }
 
-  printf("Server is listening on port %d...\n", PORT);
+  SERVER_LOG("success", "Server is listening on port %d", PORT);
 
   while (1) {
     struct sockaddr_in client_addr;
@@ -197,7 +232,7 @@ int main() {
       handle_client(client_sd, client_addr);
     } else if (pid > 0) { // Parent process
       close(client_sd);   // Close client socket in parent
-      printf("Created child process %d for new connection\n", pid);
+      SERVER_LOG("info", "Created child process %d for new connection", pid);
 
       while (waitpid(-1, NULL, WNOHANG) > 0)
         ;

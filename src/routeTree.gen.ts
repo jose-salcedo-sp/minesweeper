@@ -11,12 +11,19 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as RegisterImport } from './routes/register'
 import { Route as JoinRoomImport } from './routes/join-room'
 import { Route as AboutImport } from './routes/about'
 import { Route as IndexImport } from './routes/index'
 import { Route as RoomRoomIdImport } from './routes/room/$roomId'
 
 // Create/Update Routes
+
+const RegisterRoute = RegisterImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const JoinRoomRoute = JoinRoomImport.update({
   id: '/join-room',
@@ -67,6 +74,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JoinRoomImport
       parentRoute: typeof rootRoute
     }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterImport
+      parentRoute: typeof rootRoute
+    }
     '/room/$roomId': {
       id: '/room/$roomId'
       path: '/room/$roomId'
@@ -83,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/join-room': typeof JoinRoomRoute
+  '/register': typeof RegisterRoute
   '/room/$roomId': typeof RoomRoomIdRoute
 }
 
@@ -90,6 +105,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/join-room': typeof JoinRoomRoute
+  '/register': typeof RegisterRoute
   '/room/$roomId': typeof RoomRoomIdRoute
 }
 
@@ -98,15 +114,16 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/join-room': typeof JoinRoomRoute
+  '/register': typeof RegisterRoute
   '/room/$roomId': typeof RoomRoomIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/join-room' | '/room/$roomId'
+  fullPaths: '/' | '/about' | '/join-room' | '/register' | '/room/$roomId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/join-room' | '/room/$roomId'
-  id: '__root__' | '/' | '/about' | '/join-room' | '/room/$roomId'
+  to: '/' | '/about' | '/join-room' | '/register' | '/room/$roomId'
+  id: '__root__' | '/' | '/about' | '/join-room' | '/register' | '/room/$roomId'
   fileRoutesById: FileRoutesById
 }
 
@@ -114,6 +131,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   JoinRoomRoute: typeof JoinRoomRoute
+  RegisterRoute: typeof RegisterRoute
   RoomRoomIdRoute: typeof RoomRoomIdRoute
 }
 
@@ -121,6 +139,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   JoinRoomRoute: JoinRoomRoute,
+  RegisterRoute: RegisterRoute,
   RoomRoomIdRoute: RoomRoomIdRoute,
 }
 
@@ -137,6 +156,7 @@ export const routeTree = rootRoute
         "/",
         "/about",
         "/join-room",
+        "/register",
         "/room/$roomId"
       ]
     },
@@ -148,6 +168,9 @@ export const routeTree = rootRoute
     },
     "/join-room": {
       "filePath": "join-room.tsx"
+    },
+    "/register": {
+      "filePath": "register.tsx"
     },
     "/room/$roomId": {
       "filePath": "room/$roomId.tsx"
