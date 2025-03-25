@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -27,6 +28,13 @@
 
 int sd;
 
+typedef struct {
+  int pid1;
+  int pid2;
+} Game;
+
+Game *global_game; // shared across processes
+
 void aborta_handler(int sig) {
   SERVER_LOG("start", "Server shutting down");
   close(sd);
@@ -43,46 +51,32 @@ void trim_newline(char *str) {
   }
 }
 
-typedef struct {
-  const char *username;
-  const char *password;
-} User;
-
 int validate_user(char *username, char *password) {
   FILE *file;
   char filename[] = "db.txt";
 
   file = fopen(filename, "r");
-
   if (file == NULL) {
     SERVER_LOG("error", "File does not exist or cannot be opened");
     return 0;
-  } else {
-    SERVER_LOG("success", "File opened successfully");
-    char line[256];
-    char file_user[128], file_pass[128];
-
-    while (fgets(line, sizeof(line), file)) {
-      line[strcspn(line, "\r\n")] = 0;
-      int parsed = sscanf(line, "%127s %127s", file_user, file_pass);
-
-      if (parsed == 2) {
-        if (strcmp(username, file_user) == 0 &&
-            strcmp(password, file_pass) == 0) {
-          fclose(file);
-          return 1; // ✅ User found
-        }
-      }
-    }
-
-    fclose(file);
   }
 
-  return 0; // ❌ Not found
+  char line[256], file_user[128], file_pass[128];
+  while (fgets(line, sizeof(line), file)) {
+    line[strcspn(line, "\r\n")] = 0;
+    int parsed = sscanf(line, "%127s %127s", file_user, file_pass);
+    if (parsed == 2 && strcmp(username, file_user) == 0 &&
+        strcmp(password, file_pass) == 0) {
+      fclose(file);
+      return 1;
+    }
+  }
+
+  fclose(file);
+  return 0;
 }
 
 int create_user(char *username, char *password) {
-  // First, check if user already exists
   if (validate_user(username, password)) {
     SERVER_LOG("error", "User '%s' already exists", username);
     return 0;
@@ -96,7 +90,6 @@ int create_user(char *username, char *password) {
 
   fprintf(file, "%s %s\n", username, password);
   fclose(file);
-
   SERVER_LOG("success", "User '%s' created successfully", username);
   return 1;
 }
@@ -123,19 +116,17 @@ void handle_client(int client_sd, struct sockaddr_in client_addr) {
     trim_newline(msg);
 
     cJSON *root = cJSON_Parse(msg);
-
     if (!root) {
       SERVER_LOG("error", "Malformed request");
-      send(client_sd, "ERROR: Invalid LOGIN payload\n", 30, 0);
+      send(client_sd, "ERROR: Invalid JSON\n", 23, 0);
       continue;
     }
 
     cJSON *type = cJSON_GetObjectItemCaseSensitive(root, "type");
+    cJSON *username = cJSON_GetObjectItemCaseSensitive(root, "username");
+    cJSON *password = cJSON_GetObjectItemCaseSensitive(root, "password");
 
     if (authenticated_user[0] == '\0') {
-      cJSON *username = cJSON_GetObjectItemCaseSensitive(root, "username");
-      cJSON *password = cJSON_GetObjectItemCaseSensitive(root, "password");
-
       if (cJSON_IsString(type) && strcmp(type->valuestring, "LOGIN") == 0 &&
           cJSON_IsString(username) && cJSON_IsString(password)) {
 
@@ -143,25 +134,42 @@ void handle_client(int client_sd, struct sockaddr_in client_addr) {
           strncpy(authenticated_user, username->valuestring,
                   sizeof(authenticated_user) - 1);
           SERVER_LOG("success", "Authenticated user '%s'", authenticated_user);
-          send(client_sd, "LOGIN OK", 9, 0);
+
+          if (global_game->pid1 == -1) {
+            global_game->pid1 = getpid();
+            SERVER_LOG("success", "Fit %s into game 1 as pid1",
+                       authenticated_user);
+          } else if (global_game->pid2 == -1) {
+            global_game->pid2 = getpid();
+            SERVER_LOG("success", "Fit %s into game 1 as pid2",
+                       authenticated_user);
+          } else {
+            SERVER_LOG("error", "Can't fit more players into one game");
+            send(client_sd, "GAME FULL\n", 10, 0);
+            cJSON_Delete(root);
+            continue;
+          }
+
+          SERVER_LOG("info", "Game.pid1 = %d", global_game->pid1);
+          SERVER_LOG("info", "Game.pid2 = %d", global_game->pid2);
+          send(client_sd, "LOGIN OK\n", 9, 0);
         } else {
           SERVER_LOG("error", "Invalid credentials for '%s'",
                      username->valuestring);
-          send(client_sd, "LOGIN FAILED", 13, 0);
+          send(client_sd, "LOGIN FAILED\n", 13, 0);
         }
       } else if (cJSON_IsString(type) &&
                  strcmp(type->valuestring, "REGISTER") == 0 &&
                  cJSON_IsString(username) && cJSON_IsString(password)) {
         if (create_user(username->valuestring, password->valuestring)) {
-          send(client_sd, "REGISTERED", 11, 0);
+          send(client_sd, "REGISTERED\n", 11, 0);
         } else {
-          send(client_sd, "REGISTRATION FAILED", 20, 0);
+          send(client_sd, "REGISTRATION FAILED\n", 20, 0);
         }
       }
 
       cJSON_Delete(root);
-    } else {
-      send(client_sd, "ERROR: Malformed JSON", 23, 0);
+      continue;
     }
 
     // Authenticated commands
@@ -173,11 +181,12 @@ void handle_client(int client_sd, struct sockaddr_in client_addr) {
     char response[MSG_SIZE + 64];
     snprintf(response, sizeof(response), "[%s] Echo: %s\n", authenticated_user,
              msg);
-
     if (send(client_sd, response, strlen(response), 0) == -1) {
       perror("Send failed");
       break;
     }
+
+    cJSON_Delete(root);
   }
 
   close(client_sd);
@@ -187,6 +196,18 @@ void handle_client(int client_sd, struct sockaddr_in client_addr) {
 }
 
 int main() {
+  // Set up shared game before forking
+  global_game = mmap(NULL, sizeof(Game), PROT_READ | PROT_WRITE,
+                     MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+  if (global_game == MAP_FAILED) {
+    perror("mmap failed");
+    return 1;
+  }
+
+  global_game->pid1 = -1;
+  global_game->pid2 = -1;
+
   if (signal(SIGINT, aborta_handler) == SIG_ERR) {
     perror("Could not set signal handler");
     return 1;
@@ -227,13 +248,12 @@ int main() {
     }
 
     pid_t pid = fork();
-    if (pid == 0) { // Child process
-      close(sd);    // Close listening socket in child
+    if (pid == 0) {
+      close(sd);
       handle_client(client_sd, client_addr);
-    } else if (pid > 0) { // Parent process
-      close(client_sd);   // Close client socket in parent
+    } else if (pid > 0) {
+      close(client_sd);
       SERVER_LOG("info", "Created child process %d for new connection", pid);
-
       while (waitpid(-1, NULL, WNOHANG) > 0)
         ;
     } else {
