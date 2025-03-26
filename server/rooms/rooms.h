@@ -17,12 +17,12 @@ typedef struct {
   pthread_mutex_t lock;
   int pid_1;
   int pid_2;
+  char user_1[15];
+  char user_2[15];
   Game game_1;
   Game game_2;
 } Room;
 
-Room *create_room();
-void destroy_room(Room *room);
 int assign_room(Room **rooms);
 int try_join_room(Room *room, pid_t pid);
 

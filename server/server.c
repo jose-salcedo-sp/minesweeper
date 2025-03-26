@@ -1,7 +1,6 @@
 #include "cjson/cJSON.h"
 #include "rooms/rooms.h"
 #include <arpa/inet.h>
-#include <iso646.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <signal.h>
@@ -17,8 +16,6 @@
 #define MSG_SIZE 2048
 #define PORT 5000
 
-Room **rooms;
-
 #define SERVER_LOG(type, fmt, ...)                                             \
   do {                                                                         \
     if (strcmp(type, "start") == 0)                                            \
@@ -32,6 +29,10 @@ Room **rooms;
   } while (0)
 
 int sd;
+Room **rooms;
+int curr_room_id;
+int global_sd;
+Room *curr_room;
 
 void aborta_handler(int sig) {
   SERVER_LOG("start", "Server shutting down");
@@ -39,37 +40,65 @@ void aborta_handler(int sig) {
   exit(0);
 }
 
-void trim_newline(char *str) {
-  int len = strlen(str);
-  if (len > 0 && str[len - 1] == '\n') {
-    str[len - 1] = '\0';
-  }
-  if (len > 1 && str[len - 2] == '\r') {
-    str[len - 2] = '\0';
+void test_handler(int sig) {
+  SERVER_LOG("info", "User: '%s' joined you at room #%d", curr_room->user_2,
+             curr_room_id);
+  cJSON *res = cJSON_CreateObject();
+  cJSON_AddStringToObject(res, "user", curr_room->user_2);
+  const char *json = cJSON_PrintUnformatted(res);
+  send(global_sd, json, strlen(json), 0);
+}
+
+void initialize_rooms() {
+  rooms = mmap(NULL, sizeof(Room *) * MAX_ROOMS, PROT_READ | PROT_WRITE,
+               MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+  for (int i = 0; i < MAX_ROOMS; i++) {
+    rooms[i] = mmap(NULL, sizeof(Room), PROT_READ | PROT_WRITE,
+                    MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+    if (rooms[i] == MAP_FAILED) {
+      perror("mmap failed for room");
+      exit(1);
+    }
+
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
+
+    if (pthread_mutex_init(&rooms[i]->lock, &attr) != 0) {
+      perror("pthread_mutex_init failed");
+      exit(1);
+    }
+
+    rooms[i]->pid_1 = -1;
+    rooms[i]->pid_2 = -1;
   }
 }
 
-int validate_user(char *username, char *password) {
-  FILE *file;
-  char filename[] = "db.txt";
+void trim_newline(char *str) {
+  int len = strlen(str);
+  if (len > 0 && str[len - 1] == '\n')
+    str[len - 1] = '\0';
+  if (len > 1 && str[len - 2] == '\r')
+    str[len - 2] = '\0';
+}
 
-  file = fopen(filename, "r");
-  if (file == NULL) {
+int validate_user(char *username, char *password) {
+  FILE *file = fopen("db.txt", "r");
+  if (!file) {
     SERVER_LOG("error", "File does not exist or cannot be opened");
     return 0;
   }
 
   char line[256], file_user[128], file_pass[128];
   while (fgets(line, sizeof(line), file)) {
-    line[strcspn(line, "\r\n")] = 0;
-    int parsed = sscanf(line, "%127s %127s", file_user, file_pass);
-    if (parsed == 2 && strcmp(username, file_user) == 0 &&
-        strcmp(password, file_pass) == 0) {
+    sscanf(line, "%127s %127s", file_user, file_pass);
+    if (strcmp(username, file_user) == 0 && strcmp(password, file_pass) == 0) {
       fclose(file);
       return 1;
     }
   }
-
   fclose(file);
   return 0;
 }
@@ -79,33 +108,31 @@ int create_user(char *username, char *password) {
     SERVER_LOG("error", "User '%s' already exists", username);
     return 0;
   }
-
   FILE *file = fopen("db.txt", "a");
-  if (file == NULL) {
+  if (!file) {
     SERVER_LOG("error", "Could not open db.txt for writing");
     return 0;
   }
-
   fprintf(file, "%s %s\n", username, password);
   fclose(file);
   SERVER_LOG("success", "User '%s' created successfully", username);
   return 1;
 }
 
-// Shared between parent and child
 struct client_info {
   int client_sd;
   struct sockaddr_in client_addr;
-  int room_id;
 };
 
 void handle_client(struct client_info info, Room **rooms) {
   int client_sd = info.client_sd;
+  global_sd = info.client_sd;
   struct sockaddr_in client_addr = info.client_addr;
-  int room_id = info.room_id;
-  Room *room = rooms[room_id];
+
   char msg[MSG_SIZE];
   char authenticated_user[MSG_SIZE] = {0};
+  cJSON *res = cJSON_CreateObject();
+  const char *json;
 
   SERVER_LOG("success", "Accepted connection from %s:%d",
              inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
@@ -139,13 +166,43 @@ void handle_client(struct client_info info, Room **rooms) {
       if (strcmp(type->valuestring, "LOGIN") == 0 &&
           validate_user(username->valuestring, password->valuestring)) {
 
+        int room_id = -1;
+        Room *room;
         strncpy(authenticated_user, username->valuestring,
                 sizeof(authenticated_user) - 1);
         SERVER_LOG("success", "Authenticated user '%s'", authenticated_user);
 
+        cJSON *new_room = cJSON_GetObjectItemCaseSensitive(root, "new_room");
+        cJSON *new_room_id = cJSON_GetObjectItemCaseSensitive(root, "room_id");
+
+        if (cJSON_IsBool(new_room) && cJSON_IsTrue(new_room)) {
+          SERVER_LOG("start", "User trying to create new room");
+          room_id = assign_room(rooms);
+          if (room_id == -1) {
+            SERVER_LOG("error", "No empty rooms found");
+            cJSON_AddBoolToObject(res, "success", 0);
+            json = cJSON_PrintUnformatted(res);
+            send(client_sd, json, strlen(json), 0);
+            cJSON_Delete(res);
+            cJSON_Delete(root);
+            continue;
+          }
+        } else if (cJSON_IsNumber(new_room_id)) {
+          room_id = new_room_id->valueint;
+          SERVER_LOG("start", "User trying to join room #%d", room_id);
+        } else {
+          SERVER_LOG("error", "Non valid room_id");
+          cJSON_AddBoolToObject(res, "success", 0);
+          json = cJSON_PrintUnformatted(res);
+          send(client_sd, json, strlen(json), 0);
+          cJSON_Delete(res);
+          cJSON_Delete(root);
+          continue;
+        }
+
+        room = rooms[room_id];
         int joined = try_join_room(room, getpid());
 
-        cJSON *res = cJSON_CreateObject();
         if (joined != -1) {
           SERVER_LOG("success", "User '%s' joined room #%d as pid_%d",
                      authenticated_user, room_id, joined + 1);
@@ -153,12 +210,22 @@ void handle_client(struct client_info info, Room **rooms) {
                      room->pid_1, room->pid_2);
           cJSON_AddBoolToObject(res, "success", 1);
           cJSON_AddNumberToObject(res, "room_id", room_id);
+          curr_room_id = room_id;
+          curr_room = rooms[room_id];
+          if (joined) {
+            strncpy(curr_room->user_2, username->valuestring,
+                    sizeof(curr_room->user_2) - 1);
+            kill(room->pid_1, SIGUSR1);
+          } else {
+            strncpy(curr_room->user_1, username->valuestring,
+                    sizeof(curr_room->user_1) - 1);
+          }
         } else {
           SERVER_LOG("error", "Failed to join room #%d", room_id);
           cJSON_AddBoolToObject(res, "success", 0);
         }
 
-        const char *json = cJSON_PrintUnformatted(res);
+        json = cJSON_PrintUnformatted(res);
         send(client_sd, json, strlen(json), 0);
         cJSON_Delete(res);
         cJSON_Delete(root);
@@ -194,25 +261,20 @@ void handle_client(struct client_info info, Room **rooms) {
 }
 
 int main() {
-  rooms = mmap(NULL, sizeof(Room *) * MAX_ROOMS, PROT_READ | PROT_WRITE,
-               MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-
-  if (rooms == MAP_FAILED) {
-    perror("mmap for rooms array failed");
-    exit(1);
-  }
-
-  memset(rooms, 0, sizeof(Room *) * MAX_ROOMS);
-
   if (signal(SIGINT, aborta_handler) == SIG_ERR) {
     perror("Could not set signal handler");
     return 1;
   }
 
-  if ((sd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+  signal(SIGUSR1, test_handler);
+
+  sd = socket(AF_INET, SOCK_STREAM, 0);
+  if (sd == -1) {
     perror("Socket creation failed");
     return 1;
   }
+
+  initialize_rooms();
 
   struct sockaddr_in server_addr;
   server_addr.sin_family = AF_INET;
@@ -233,15 +295,10 @@ int main() {
 
   SERVER_LOG("success", "Server is listening on port %d", PORT);
 
-  // Temporary: always use room 0 for testing
-  int room_id = 0;
-  rooms[room_id] = create_room();
-
   while (1) {
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
     int client_sd = accept(sd, (struct sockaddr *)&client_addr, &client_len);
-
     if (client_sd == -1) {
       perror("Accept failed");
       continue;
@@ -250,9 +307,7 @@ int main() {
     pid_t pid = fork();
     if (pid == 0) {
       close(sd);
-      struct client_info info = {.client_sd = client_sd,
-                                 .client_addr = client_addr,
-                                 .room_id = room_id};
+      struct client_info info = {client_sd, client_addr};
       handle_client(info, rooms);
     } else if (pid > 0) {
       close(client_sd);
