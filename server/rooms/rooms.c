@@ -29,8 +29,7 @@ void initialize_rooms(Room **rooms) {
 }
 
 void game_initialization(Game *game) {
-    generate_bomb_map(game->server_board, SIZE);
-
+  generate_bomb_map(game->server_board, SIZE);
 }
 
 int assign_room(Room **rooms) {
