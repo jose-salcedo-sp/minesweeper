@@ -34,7 +34,8 @@ void test_handler(int sig) {
   log_info("User: '%s' joined you at room #%d", curr_room->user_2,
            curr_room_id);
   cJSON *res = cJSON_CreateObject();
-  cJSON_AddStringToObject(res, "user", curr_room->user_2);
+  cJSON_AddStringToObject(res, "username", curr_room->user_2);
+  cJSON_AddStringToObject(res, "type", "JOINED");
   const char *json = cJSON_PrintUnformatted(res);
   send(global_sd, json, strlen(json), 0);
 }
@@ -195,10 +196,13 @@ void handle_client(struct client_info info, Room **rooms) {
 
         if (joined != -1) {
           log_success("User '%s' joined room #%d as pid_%d", authenticated_user,
-                   room_id, joined + 1);
+                      room_id, joined + 1);
           log_info("Room #%d: pid_1 = %d, pid_2 = %d", room_id, room->pid_1,
                    room->pid_2);
+
           cJSON_AddBoolToObject(res, "success", 1);
+          cJSON_AddStringToObject(res, "type", "LOGIN");
+          cJSON_AddStringToObject(res, "username", username->valuestring);
           cJSON_AddNumberToObject(res, "room_id", room_id);
           curr_room_id = room_id;
           curr_room = rooms[room_id];
