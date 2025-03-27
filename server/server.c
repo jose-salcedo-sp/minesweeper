@@ -1,5 +1,6 @@
 #include "cjson/cJSON.h"
 #include "dbg.h"
+#include "minesweeper/minesweeper.h"
 #include "rooms/rooms.h"
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -21,7 +22,6 @@
 int sd;
 Room **rooms;
 int curr_room_id;
-int global_sd;
 Room *curr_room;
 
 void aborta_handler(int sig) {
@@ -30,40 +30,24 @@ void aborta_handler(int sig) {
   exit(0);
 }
 
-void test_handler(int sig) {
-  log_info("User: '%s' joined you at room #%d", curr_room->user_2,
-           curr_room_id);
+void action_handler(int sig) {
   cJSON *res = cJSON_CreateObject();
-  cJSON_AddStringToObject(res, "username", curr_room->user_2);
-  cJSON_AddStringToObject(res, "type", "JOINED");
-  const char *json = cJSON_PrintUnformatted(res);
-  send(global_sd, json, strlen(json), 0);
-}
 
-void initialize_rooms() {
-  rooms = mmap(NULL, sizeof(Room *) * MAX_ROOMS, PROT_READ | PROT_WRITE,
-               MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+  switch (curr_room->action) {
+  case LOGIN: // should only notify the other pid_1
+    log_info("User: '%s' joined you at room #%d", curr_room->user_2.username,
+             curr_room_id);
+    cJSON_AddStringToObject(res, "username", curr_room->user_2.username);
+    cJSON_AddStringToObject(res, "type", "JOINED");
 
-  for (int i = 0; i < MAX_ROOMS; i++) {
-    rooms[i] = mmap(NULL, sizeof(Room), PROT_READ | PROT_WRITE,
-                    MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-
-    if (rooms[i] == MAP_FAILED) {
-      perror("mmap failed for room");
-      exit(1);
-    }
-
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
-
-    if (pthread_mutex_init(&rooms[i]->lock, &attr) != 0) {
-      perror("pthread_mutex_init failed");
-      exit(1);
-    }
-
-    rooms[i]->pid_1 = -1;
-    rooms[i]->pid_2 = -1;
+    const char *json = cJSON_PrintUnformatted(res);
+    send(curr_room->user_1.sd, json, strlen(json), 0); // report only to room owner
+  case LOGOUT:
+    break;
+  case MOVE:
+    break;
+  default:
+    break;
   }
 }
 
@@ -117,7 +101,6 @@ struct client_info {
 
 void handle_client(struct client_info info, Room **rooms) {
   int client_sd = info.client_sd;
-  global_sd = info.client_sd;
   struct sockaddr_in client_addr = info.client_addr;
 
   char msg[MSG_SIZE];
@@ -207,12 +190,17 @@ void handle_client(struct client_info info, Room **rooms) {
           curr_room_id = room_id;
           curr_room = rooms[room_id];
           if (joined) {
-            strncpy(curr_room->user_2, username->valuestring,
+            strncpy(curr_room->user_2.username, username->valuestring,
                     sizeof(curr_room->user_2) - 1);
+            curr_room->user_2.sd = client_sd;
+            curr_room->user_2.active = 1;
+
             kill(room->pid_1, SIGUSR1);
           } else {
-            strncpy(curr_room->user_1, username->valuestring,
+            strncpy(curr_room->user_1.username, username->valuestring,
                     sizeof(curr_room->user_1) - 1);
+            curr_room->user_1.sd = client_sd;
+            curr_room->user_2.active = 0;
           }
         } else {
           log_err("Failed to join room #%d", room_id);
@@ -260,7 +248,7 @@ int main() {
     return 1;
   }
 
-  signal(SIGUSR1, test_handler);
+  signal(SIGUSR1, action_handler);
 
   sd = socket(AF_INET, SOCK_STREAM, 0);
   if (sd == -1) {
@@ -268,7 +256,7 @@ int main() {
     return 1;
   }
 
-  initialize_rooms();
+  initialize_rooms(rooms);
 
   struct sockaddr_in server_addr;
   server_addr.sin_family = AF_INET;
