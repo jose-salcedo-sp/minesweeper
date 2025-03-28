@@ -41,7 +41,8 @@ typedef struct {
 
 int assign_room(Room **rooms);
 int try_join_room(Room *room, pid_t pid);
-void initialize_rooms(Room **rooms);
+void initialize_rooms(Room ***rooms);
 void game_initialization(Game *game);
+void set_room_defaults(Room *room);
 
 #endif

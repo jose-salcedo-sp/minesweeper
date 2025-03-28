@@ -25,6 +25,7 @@ BoardStatus process_move(char bomb_map[SIZE][SIZE], char game_map[SIZE][SIZE], B
 void reveal_empty_cells(char bomb_map[SIZE][SIZE], char game_map[SIZE][SIZE], char x, char y);
 char count_adjacent_bombs(char bomb_map[SIZE][SIZE], char x, char y);
 char *map_to_string(char map[SIZE][SIZE]);
+void flatten_map(char dest[SIZE * SIZE], char map[SIZE][SIZE]);
 
 // Debug/utility
 void print_map(char map[SIZE][SIZE]);

@@ -6,6 +6,18 @@
 
 #define SIZE 8
 
+void generate_unreveiled_map(char map[SIZE][SIZE]) {
+  memset(map, 'u', SIZE * SIZE * sizeof(char));
+}
+
+void flatten_map(char dest[SIZE * SIZE], char map[SIZE][SIZE]) {
+  for (int y = 0; y < SIZE; y++) {
+    for (int x = 0; x < SIZE; x++) {
+      dest[y * SIZE + x] = map[y][x];
+    }
+  }
+}
+
 void generate_bomb_map(char bomb_map[SIZE][SIZE], char bomb_count) {
   for (int i = 0; i < SIZE; i++) {
     for (int j = 0; j < SIZE; j++) {

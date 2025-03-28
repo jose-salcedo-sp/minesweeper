@@ -31,6 +31,7 @@ void aborta_handler(int sig) {
 }
 
 void action_handler(int sig) {
+  debug("[SIGNAL] Reached this place");
   cJSON *res = cJSON_CreateObject();
 
   switch (curr_room->action) {
@@ -41,7 +42,9 @@ void action_handler(int sig) {
     cJSON_AddStringToObject(res, "type", "JOINED");
 
     const char *json = cJSON_PrintUnformatted(res);
-    send(curr_room->user_1.sd, json, strlen(json), 0); // report only to room owner
+    send(curr_room->user_1.sd, json, strlen(json),
+         0); // report only to room owner
+    break;
   case LOGOUT:
     break;
   case MOVE:
@@ -144,7 +147,7 @@ void handle_client(struct client_info info, Room **rooms) {
         Room *room;
         strncpy(authenticated_user, username->valuestring,
                 sizeof(authenticated_user) - 1);
-        log_info("Authenticated user '%s'", authenticated_user);
+        log_success("Authenticated user '%s'", authenticated_user);
 
         cJSON *new_room = cJSON_GetObjectItemCaseSensitive(root, "new_room");
         cJSON *new_room_id = cJSON_GetObjectItemCaseSensitive(root, "room_id");
@@ -187,20 +190,39 @@ void handle_client(struct client_info info, Room **rooms) {
           cJSON_AddStringToObject(res, "type", "LOGIN");
           cJSON_AddStringToObject(res, "username", username->valuestring);
           cJSON_AddNumberToObject(res, "room_id", room_id);
+
           curr_room_id = room_id;
           curr_room = rooms[room_id];
           if (joined) {
+            debug("Reached joined for second user");
             strncpy(curr_room->user_2.username, username->valuestring,
                     sizeof(curr_room->user_2) - 1);
             curr_room->user_2.sd = client_sd;
-            curr_room->user_2.active = 1;
+            curr_room->user_1.active = 1;
 
-            kill(room->pid_1, SIGUSR1);
+            if (kill(room->pid_1, SIGUSR1) == -1) {
+              perror("Process not alive");
+            } else {
+              log_info("✅ Target process %d is alive, sending SIGUSR1",
+                       room->pid_1);
+              room->action = LOGIN; // Set action before signaling
+              kill(room->pid_1, SIGUSR1);
+            };
+
+            char client_map[SIZE * SIZE];
+            flatten_map(client_map, curr_room->user_2.game.client_board);
+            cJSON_AddStringToObject(res, "board", client_map);
           } else {
+            debug("Reached joined for first user");
             strncpy(curr_room->user_1.username, username->valuestring,
                     sizeof(curr_room->user_1) - 1);
             curr_room->user_1.sd = client_sd;
-            curr_room->user_2.active = 0;
+            curr_room->user_1.active = 1;
+
+            debug("sd: %d, name: %s", client_sd, curr_room->user_1.username);
+            char client_map[SIZE * SIZE];
+            flatten_map(client_map, curr_room->user_1.game.client_board);
+            cJSON_AddStringToObject(res, "board", client_map);
           }
         } else {
           log_err("Failed to join room #%d", room_id);
@@ -256,7 +278,7 @@ int main() {
     return 1;
   }
 
-  initialize_rooms(rooms);
+  initialize_rooms(&rooms);
 
   struct sockaddr_in server_addr;
   server_addr.sin_family = AF_INET;
