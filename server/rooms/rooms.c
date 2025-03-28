@@ -24,3 +24,21 @@ int try_join_room(Room *room, pid_t pid) {
   pthread_mutex_unlock(&room->lock);
   return result;
 }
+
+void initialize_rooms(Room ***rooms) {
+  *rooms = mmap(NULL, sizeof(Room *) * MAX_ROOMS, PROT_READ | PROT_WRITE,
+                MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+  for (int i = 0; i < MAX_ROOMS; i++) {
+    (*rooms)[i] = mmap(NULL, sizeof(Room), PROT_READ | PROT_WRITE,
+                       MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
+    pthread_mutex_init(&((*rooms)[i]->lock), &attr);
+
+    (*rooms)[i]->pid_1 = -1;
+    (*rooms)[i]->pid_2 = -1;
+  }
+}
