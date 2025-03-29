@@ -3,6 +3,11 @@
 
 #define SIZE 8
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
 typedef struct {
   char name[20];
   int room;
@@ -24,9 +29,5 @@ void reveal_empty_cells(char bomb_map[SIZE][SIZE], char game_map[SIZE][SIZE],
 char count_adjacent_bombs(char bomb_map[SIZE][SIZE], char x, char y);
 char *map_to_string(char map[SIZE][SIZE]);
 void flatten_map(char dest[SIZE * SIZE], char map[SIZE][SIZE]);
-
-// Debug/utility
-void print_map(char map[SIZE][SIZE]);
-void print_bomb_map(char map[SIZE][SIZE]);
 
 #endif // MINESWEEPER_H

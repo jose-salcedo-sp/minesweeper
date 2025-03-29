@@ -1,34 +1,13 @@
-# Compiler and flags
-CC       = gcc
-CFLAGS   = -Wall -Wextra -pedantic -std=c99 -D_GNU_SOURCE
-INCLUDES = -I. -Icjson -Irooms
+CC=gcc
+CFLAGS=-Wall -g
 
-# Target executable
-TARGET   = server
+SRC = server.c rooms/rooms.c minesweeper/minesweeper.c cjson/cJSON.c
+OBJ = $(SRC:.c=.o)
 
-# Object files
-OBJS     = cjson/cJSON.o rooms/rooms.o server.o
+all: server
 
-.PHONY: all clean
+server: $(OBJ)
+	$(CC) $(CFLAGS) -o server $(OBJ) -lpthread
 
-all: $(TARGET)
-
-# Link the final executable
-$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -o $(TARGET)
-
-# Compile cJSON
-cjson/cJSON.o: cjson/cJSON.c cjson/cJSON.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c cjson/cJSON.c -o cjson/cJSON.o
-
-# Compile rooms
-rooms/rooms.o: rooms/rooms.c rooms/rooms.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c rooms/rooms.c -o rooms/rooms.o
-
-# Compile server
-server.o: server.c cjson/cJSON.h rooms/rooms.h dbg.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c server.c -o server.o
-
-# Clean up build artifacts
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f server $(OBJ)

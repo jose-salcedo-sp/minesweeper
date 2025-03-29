@@ -5,10 +5,11 @@
 #include <pthread.h>
 #include <sys/mman.h>
 #include <sys/types.h>
+#include <string.h>
 
 #define MAX_ROOMS 1000
 
-typedef char Board[64];
+typedef char Board[SIZE][SIZE];
 
 typedef enum Actions { LOGIN = 0, MOVE = 1, LOGOUT = 2 } Actions;
 

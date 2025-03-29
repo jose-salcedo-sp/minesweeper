@@ -40,5 +40,11 @@ void initialize_rooms(Room ***rooms) {
 
     (*rooms)[i]->pid_1 = -1;
     (*rooms)[i]->pid_2 = -1;
+
+    // initialize boards
+    generate_bomb_map((*rooms)[i]->game_1.server_board, SIZE);
+    generate_unreveiled_map((*rooms)[i]->game_1.client_board);
+    generate_bomb_map((*rooms)[i]->game_2.server_board, SIZE);
+    generate_unreveiled_map((*rooms)[i]->game_2.client_board);
   }
 }

@@ -1,5 +1,6 @@
 #include "cjson/cJSON.h"
 #include "dbg.h"
+#include "minesweeper/minesweeper.h"
 #include "rooms/rooms.h"
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -31,19 +32,20 @@ void aborta_handler(int sig) {
 }
 
 void action_handler(int sig) {
-  debug("[SIGNAL] Reached this place");
   cJSON *res = cJSON_CreateObject();
 
   switch (curr_room->action) {
-  case LOGIN: // should only notify the other pid_1
+  case LOGIN:
     log_info("User: '%s' joined you at room #%d", curr_room->game_2.username,
              curr_room_id);
     cJSON_AddStringToObject(res, "username", curr_room->game_2.username);
     cJSON_AddStringToObject(res, "type", "JOINED");
 
+    char *map = map_to_string(curr_room->game_1.client_board);
+    cJSON_AddStringToObject(res, "board", map);
+
     const char *json = cJSON_PrintUnformatted(res);
-    send(curr_room->game_1.sd, json, strlen(json),
-         0); // report only to room owner
+    send(curr_room->game_1.sd, json, strlen(json), 0);
     break;
   case LOGOUT:
     break;
