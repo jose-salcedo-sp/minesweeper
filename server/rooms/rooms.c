@@ -25,6 +25,16 @@ int try_join_room(Room *room, pid_t pid) {
   return result;
 }
 
+char determine_player(Room *room, int pid) {
+  if (room->pid_1 == pid)
+    return 0;
+  else if (room->pid_2 == pid)
+    return 1;
+
+  // player not in room
+  return -1;
+}
+
 void initialize_rooms(Room ***rooms) {
   *rooms = mmap(NULL, sizeof(Room *) * MAX_ROOMS, PROT_READ | PROT_WRITE,
                 MAP_SHARED | MAP_ANONYMOUS, -1, 0);

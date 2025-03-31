@@ -102,13 +102,11 @@ char *map_to_string(char map[SIZE][SIZE]) {
   char *result = (char *)malloc((SIZE * SIZE + 1) * sizeof(char));
   int index = 0;
 
-  printf("🧪 map_to_string() dump:\n");
   for (int i = 0; i < SIZE; i++) {
     for (int j = 0; j < SIZE; j++) {
       char c = map[i][j];
       char visual =
           (c == 1) ? '*' : (c == 0 ? '.' : c); // convert bomb=*, empty=.
-      printf("%c", visual);
       result[index++] = visual;
     }
     printf("\n");

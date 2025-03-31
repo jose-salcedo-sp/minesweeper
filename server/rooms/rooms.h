@@ -32,5 +32,6 @@ typedef struct {
 int assign_room(Room **rooms);
 int try_join_room(Room *room, pid_t pid);
 void initialize_rooms(Room ***rooms);
+char determine_player(Room *room, pid_t pid);
 
 #endif

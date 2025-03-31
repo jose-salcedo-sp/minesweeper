@@ -35,7 +35,7 @@ void action_handler(int sig) {
   cJSON *res = cJSON_CreateObject();
 
   switch (curr_room->action) {
-  case LOGIN:
+  case LOGIN: {
     log_info("User: '%s' joined you at room #%d", curr_room->game_2.username,
              curr_room_id);
     cJSON_AddStringToObject(res, "username", curr_room->game_2.username);
@@ -47,10 +47,28 @@ void action_handler(int sig) {
     const char *json = cJSON_PrintUnformatted(res);
     send(curr_room->game_1.sd, json, strlen(json), 0);
     break;
+  }
   case LOGOUT:
     break;
-  case MOVE:
+  case MOVE: {
+    int player = determine_player(curr_room, getpid());
+    Game *opponent = (player == 0) ? &curr_room->game_2 : &curr_room->game_1;
+
+    cJSON *res = cJSON_CreateObject();
+    cJSON_AddStringToObject(res, "type", "MOVE");
+    cJSON_AddStringToObject(res, "player", opponent->username);
+    cJSON_AddStringToObject(res, "board",
+                            map_to_string(opponent->client_board));
+    cJSON_AddStringToObject(res, "status",
+                            "ONGOING"); // optional: can derive if needed
+    cJSON_AddBoolToObject(res, "success", 1);
+
+    const char *json = cJSON_PrintUnformatted(res);
+    send(opponent->sd, json, strlen(json), 0);
+    cJSON_Delete(res);
+    free((void *)json);
     break;
+  }
   default:
     break;
   }
@@ -140,8 +158,11 @@ void handle_client(struct client_info info, Room **rooms) {
     cJSON *username = cJSON_GetObjectItemCaseSensitive(root, "username");
     cJSON *password = cJSON_GetObjectItemCaseSensitive(root, "password");
 
+    debug("%s", cJSON_Print(root));
+
     if (authenticated_user[0] == '\0' && cJSON_IsString(type) &&
-        cJSON_IsString(username) && cJSON_IsString(password)) {
+        strcmp(type->valuestring, "LOGIN") == 0 && cJSON_IsString(username) &&
+        cJSON_IsString(password)) {
 
       if (strcmp(type->valuestring, "LOGIN") == 0 &&
           validate_user(username->valuestring, password->valuestring)) {
@@ -218,26 +239,81 @@ void handle_client(struct client_info info, Room **rooms) {
         continue;
       }
 
-      if (strcmp(type->valuestring, "REGISTER") == 0) {
-        if (create_user(username->valuestring, password->valuestring))
-          send(client_sd, "REGISTERED\n", 11, 0);
-        else
-          send(client_sd, "REGISTRATION FAILED\n", 20, 0);
-        cJSON_Delete(root);
-        continue;
+      if (strcmp(msg, "close") == 0) {
+        log_info("User '%s' requested to close", authenticated_user);
+        break;
       }
+
+      char response[MSG_SIZE + 64];
+      log_err("WHAT THE HELL AM I DOING HERE");
+      snprintf(response, sizeof(response), "[%s] Echo: %s\n",
+               authenticated_user, msg);
+      send(client_sd, response, strlen(response), 0);
+      cJSON_Delete(root);
     }
 
-    if (strcmp(msg, "close") == 0) {
-      log_info("User '%s' requested to close", authenticated_user);
-      break;
+    debug("Authenticated user: %s, type: %s", authenticated_user,
+          type->valuestring);
+    // Authenticated users
+    if (authenticated_user[0] != '\0' && cJSON_IsString(type) &&
+        strcmp(type->valuestring, "MOVE") == 0) {
+      cJSON *x = cJSON_GetObjectItemCaseSensitive(root, "x");
+      cJSON *y = cJSON_GetObjectItemCaseSensitive(root, "y");
+      cJSON *action = cJSON_GetObjectItemCaseSensitive(root, "action");
+
+      if (cJSON_IsNumber(x) && cJSON_IsNumber(y) && cJSON_IsString(action)) {
+        BoardMove move = {.x = x->valueint,
+                          .y = y->valueint,
+                          .action = action->valuestring[0]};
+
+        int player = determine_player(curr_room, getpid());
+        Game *me = player == 0 ? &curr_room->game_1 : &curr_room->game_2;
+        Game *opponent = player == 0 ? &curr_room->game_2 : &curr_room->game_1;
+
+        BoardStatus status =
+            process_move(me->server_board, me->client_board, move);
+        curr_room->action = MOVE;
+
+        // Send to other process
+        kill((player == 0) ? curr_room->pid_2 : curr_room->pid_1, SIGUSR1);
+
+        // Respond to sender
+        cJSON *res = cJSON_CreateObject();
+        cJSON_AddStringToObject(res, "type", "MOVE");
+        cJSON_AddStringToObject(res, "player", me->username);
+        cJSON_AddStringToObject(res, "board", map_to_string(me->client_board));
+        cJSON_AddBoolToObject(res, "success", 1);
+
+        switch (status) {
+        case ONGOING:
+          cJSON_AddStringToObject(res, "status", "ONGOING");
+          break;
+        case VICTORY:
+          cJSON_AddStringToObject(res, "status", "VICTORY");
+          break;
+        case DEFEAT:
+          cJSON_AddStringToObject(res, "status", "DEFEAT");
+          break;
+        }
+
+        const char *json = cJSON_PrintUnformatted(res);
+        send(client_sd, json, strlen(json), 0);
+        cJSON_Delete(res);
+        free((void *)json);
+      }
+
+      cJSON_Delete(root);
+      continue;
     }
 
-    char response[MSG_SIZE + 64];
-    snprintf(response, sizeof(response), "[%s] Echo: %s\n", authenticated_user,
-             msg);
-    send(client_sd, response, strlen(response), 0);
-    cJSON_Delete(root);
+    if (strcmp(type->valuestring, "REGISTER") == 0) {
+      if (create_user(username->valuestring, password->valuestring))
+        send(client_sd, "REGISTERED\n", 11, 0);
+      else
+        send(client_sd, "REGISTRATION FAILED\n", 20, 0);
+      cJSON_Delete(root);
+      continue;
+    }
   }
 
   close(client_sd);
