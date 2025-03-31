@@ -28,3 +28,6 @@ dist-ssr
 
 # "DB"
 db.txt
+
+# Target folder
+server/reverse-proxy/target/

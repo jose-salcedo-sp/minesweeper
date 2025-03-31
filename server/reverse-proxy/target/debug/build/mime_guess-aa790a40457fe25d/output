@@ -1,1 +1,0 @@
-cargo:rustc-env=MIME_TYPES_GENERATED_PATH=/Users/jose.salcedo/Documents/minesweeper-frontend/server/reverse-proxy/target/debug/build/mime_guess-aa790a40457fe25d/out/mime_types_generated.rs
