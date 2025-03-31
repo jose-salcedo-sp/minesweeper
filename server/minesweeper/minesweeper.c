@@ -41,19 +41,20 @@ char count_adjacent_bombs(char bomb_map[SIZE][SIZE], char x, char y) {
 }
 
 void reveal_empty_cells(char bomb_map[SIZE][SIZE], char game_map[SIZE][SIZE],
-                        char x, char y) {
+                        char x, char y, int *revealed_count) {
   if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || game_map[x][y] != 'u') {
     return;
   }
 
   int adjacent_bombs = count_adjacent_bombs(bomb_map, x, y);
+	(*revealed_count)++;
 
   if (adjacent_bombs == 0) {
     game_map[x][y] = 'e';
     for (int i = -1; i <= 1; i++) {
       for (int j = -1; j <= 1; j++) {
         if (i != 0 || j != 0) {
-          reveal_empty_cells(bomb_map, game_map, x + i, y + j);
+          reveal_empty_cells(bomb_map, game_map, x + i, y + j, revealed_count);
         }
       }
     }
@@ -63,7 +64,7 @@ void reveal_empty_cells(char bomb_map[SIZE][SIZE], char game_map[SIZE][SIZE],
 }
 
 BoardStatus process_move(char bomb_map[SIZE][SIZE], char game_map[SIZE][SIZE],
-                         BoardMove move) {
+                         BoardMove move, int *revealed_count) {
   int x = move.x;
   int y = move.y;
 
@@ -75,7 +76,7 @@ BoardStatus process_move(char bomb_map[SIZE][SIZE], char game_map[SIZE][SIZE],
     if (bomb_map[x][y] == 1) {
       return DEFEAT;
     } else {
-      reveal_empty_cells(bomb_map, game_map, x, y);
+      reveal_empty_cells(bomb_map, game_map, x, y, revealed_count);
     }
   }
 
