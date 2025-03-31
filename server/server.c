@@ -282,7 +282,8 @@ void handle_client(struct client_info info, Room **rooms) {
         Game *me = player == 0 ? &curr_room->game_1 : &curr_room->game_2;
         Game *opponent = player == 0 ? &curr_room->game_2 : &curr_room->game_1;
 
-        me->status = process_move(me->server_board, me->client_board, move, &me->revealed_cells);
+        me->status = process_move(me->server_board, me->client_board, move,
+                                  &me->revealed_cells);
         curr_room->action = MOVE;
 
         // Send to other process
@@ -312,22 +313,21 @@ void handle_client(struct client_info info, Room **rooms) {
         cJSON_Delete(res);
         free((void *)json);
 
+        int diff = me->revealed_cells - opponent->revealed_cells;
+        if (abs(diff) >= 0) { // Only notify if significant difference
+          cJSON *udp_msg = cJSON_CreateObject();
+          cJSON_AddStringToObject(udp_msg, "type", "LEADER_UPDATE");
+          cJSON_AddStringToObject(udp_msg, "leader",
+                                  diff > 0 ? me->username : opponent->username);
+          cJSON_AddNumberToObject(udp_msg, "difference", abs(diff));
 
-		int diff = me->revealed_cells - opponent->revealed_cells;
-        if (abs(diff) >= 0) {  // Only notify if significant difference
-            cJSON *udp_msg = cJSON_CreateObject();
-            cJSON_AddStringToObject(udp_msg, "type", "LEADER_UPDATE");
-            cJSON_AddStringToObject(udp_msg, "leader", 
-                                   diff > 0 ? me->username : opponent->username);
-            cJSON_AddNumberToObject(udp_msg, "difference", abs(diff));
-            
-            const char *json = cJSON_PrintUnformatted(udp_msg);
-            sendto(info.udp_sd, json, strlen(json), 0,
-                  (struct sockaddr *)&info.proxy_udp_addr, 
-                  sizeof(info.proxy_udp_addr));
-            
-            cJSON_Delete(udp_msg);
-            free((void *)json);
+          const char *json = cJSON_PrintUnformatted(udp_msg);
+          sendto(info.udp_sd, json, strlen(json), 0,
+                 (struct sockaddr *)&info.proxy_udp_addr,
+                 sizeof(info.proxy_udp_addr));
+
+          cJSON_Delete(udp_msg);
+          free((void *)json);
         }
       }
 
@@ -386,17 +386,17 @@ int main() {
 
   log_info("Server is listening on port %d", PORT);
 
-	int udp_sd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (udp_sd == -1) {
-        perror("UDP socket creation failed");
-        close(sd);
-        return 1;
-    }
+  int udp_sd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (udp_sd == -1) {
+    perror("UDP socket creation failed");
+    close(sd);
+    return 1;
+  }
 
-    struct sockaddr_in proxy_udp_addr;
-    proxy_udp_addr.sin_family = AF_INET;
-    proxy_udp_addr.sin_port = htons(UDPPORT);  // Proxy's UDP port
-    inet_pton(AF_INET, "127.0.0.1", &proxy_udp_addr.sin_addr);
+  struct sockaddr_in proxy_udp_addr;
+  proxy_udp_addr.sin_family = AF_INET;
+  proxy_udp_addr.sin_port = htons(UDPPORT); // Proxy's UDP port
+  inet_pton(AF_INET, "127.0.0.1", &proxy_udp_addr.sin_addr);
 
   while (1) {
     struct sockaddr_in client_addr;
@@ -410,12 +410,10 @@ int main() {
     pid_t pid = fork();
     if (pid == 0) {
       close(sd);
-	struct client_info info = {
-                .client_sd = client_sd,
-                .client_addr = client_addr,
-                .udp_sd = udp_sd,
-                .proxy_udp_addr = proxy_udp_addr
-            };
+      struct client_info info = {.client_sd = client_sd,
+                                 .client_addr = client_addr,
+                                 .udp_sd = udp_sd,
+                                 .proxy_udp_addr = proxy_udp_addr};
       handle_client(info, rooms);
     } else if (pid > 0) {
       close(client_sd);
@@ -425,32 +423,6 @@ int main() {
     } else {
       perror("Fork failed");
       close(client_sd);
-    }
-
-    // Start background process that sends UDP messages every second
-    pid_t udp_pid = fork();
-    if (udp_pid == 0) {
-      int udp_socket = socket(AF_INET, SOCK_DGRAM, 0);
-      if (udp_socket < 0) {
-        perror("UDP socket creation failed");
-        exit(1);
-      }
-
-      struct sockaddr_in udp_addr;
-      udp_addr.sin_family = AF_INET;
-      udp_addr.sin_port = htons(5001); // <-- match your proxy's UDP bind port
-      inet_pton(AF_INET, "127.0.0.1", &udp_addr.sin_addr); // send to proxy
-
-      const char *msg = "{\"type\":\"MOVE\",\"success\":true,\"board\":\"\",\"player\":\"udp\",\"status\":\"ONGOING\"}";
-
-      while (1) {
-        sendto(udp_socket, msg, strlen(msg), 0, (struct sockaddr *)&udp_addr,
-               sizeof(udp_addr));
-        sleep(1);
-      }
-
-      close(udp_socket);
-      exit(0); // exit child when loop is broken (shouldn't happen)
     }
   }
 
