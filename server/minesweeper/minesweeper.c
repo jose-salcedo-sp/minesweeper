@@ -4,21 +4,21 @@
 void generate_bomb_map(char bomb_map[SIZE][SIZE], char bomb_count) {
   for (int i = 0; i < SIZE; i++) {
     for (int j = 0; j < SIZE; j++) {
-      bomb_map[i][j] = 0;
+      bomb_map[i][j] = 1;
     }
   }
 
-  srand(time(NULL));
+  // srand(time(NULL));
 
-  int bombs_placed = 0;
-  while (bombs_placed < bomb_count) {
-    int x = rand() % SIZE;
-    int y = rand() % SIZE;
-    if (bomb_map[x][y] == 0) {
-      bomb_map[x][y] = 1;
-      bombs_placed++;
-    }
-  }
+  // int bombs_placed = 0;
+  // while (bombs_placed < bomb_count) {
+  //   int x = rand() % SIZE;
+  //   int y = rand() % SIZE;
+  //   if (bomb_map[x][y] == 0) {
+  //     bomb_map[x][y] = 1;
+  //     bombs_placed++;
+  //   }
+  // }
 }
 
 void generate_unreveiled_map(char map[SIZE][SIZE]) {

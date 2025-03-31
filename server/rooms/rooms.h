@@ -18,6 +18,7 @@ typedef struct {
   Board server_board;
   char username[15];
   int sd;
+  BoardStatus status;
 } Game;
 
 typedef struct {

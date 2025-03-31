@@ -59,8 +59,17 @@ void action_handler(int sig) {
     cJSON_AddStringToObject(res, "player", opponent->username);
     cJSON_AddStringToObject(res, "board",
                             map_to_string(opponent->client_board));
-    cJSON_AddStringToObject(res, "status",
-                            "ONGOING"); // optional: can derive if needed
+    switch (opponent->status) {
+    case ONGOING:
+      cJSON_AddStringToObject(res, "status", "ONGOING");
+      break;
+    case VICTORY:
+      cJSON_AddStringToObject(res, "status", "VICTORY");
+      break;
+    case DEFEAT:
+      cJSON_AddStringToObject(res, "status", "DEFEAT");
+      break;
+    }
     cJSON_AddBoolToObject(res, "success", 1);
 
     const char *json = cJSON_PrintUnformatted(res);
@@ -245,16 +254,12 @@ void handle_client(struct client_info info, Room **rooms) {
       }
 
       char response[MSG_SIZE + 64];
-      log_err("WHAT THE HELL AM I DOING HERE");
       snprintf(response, sizeof(response), "[%s] Echo: %s\n",
                authenticated_user, msg);
       send(client_sd, response, strlen(response), 0);
       cJSON_Delete(root);
     }
 
-    debug("Authenticated user: %s, type: %s", authenticated_user,
-          type->valuestring);
-    // Authenticated users
     if (authenticated_user[0] != '\0' && cJSON_IsString(type) &&
         strcmp(type->valuestring, "MOVE") == 0) {
       cJSON *x = cJSON_GetObjectItemCaseSensitive(root, "x");
@@ -270,8 +275,7 @@ void handle_client(struct client_info info, Room **rooms) {
         Game *me = player == 0 ? &curr_room->game_1 : &curr_room->game_2;
         Game *opponent = player == 0 ? &curr_room->game_2 : &curr_room->game_1;
 
-        BoardStatus status =
-            process_move(me->server_board, me->client_board, move);
+        me->status = process_move(me->server_board, me->client_board, move);
         curr_room->action = MOVE;
 
         // Send to other process
@@ -284,7 +288,7 @@ void handle_client(struct client_info info, Room **rooms) {
         cJSON_AddStringToObject(res, "board", map_to_string(me->client_board));
         cJSON_AddBoolToObject(res, "success", 1);
 
-        switch (status) {
+        switch (me->status) {
         case ONGOING:
           cJSON_AddStringToObject(res, "status", "ONGOING");
           break;
