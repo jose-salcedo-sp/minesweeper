@@ -1,18 +1,14 @@
 import { Identifier } from "@/types";
-import { useMutation } from "@tanstack/react-query";
 import { ReactNode } from "@tanstack/react-router";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import useWebSocket, { ReadyState } from "react-use-websocket";
 
 type AuthContext = {
   name: string;
-  login: (
-    username: string,
-    password: string,
-    new_room: boolean,
-  ) => Promise<void>;
-  register: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string, new_room: boolean) => void;
+  register: (username: string, password: string) => void;
   board: Identifier[][];
-  updateBoard: (x: number, y: number, action: "r" | "f") => Promise<void>;
+  updateBoard: (x: number, y: number, action: "r" | "f") => void;
   flagsMarked: number;
   cellsDiscovered: number;
 };
@@ -32,17 +28,12 @@ const authContext = createContext<AuthContext>({
   name: "",
   board: default_board,
   login: () => {},
-  updateBoard: async () => {},
+  register: () => {},
+  updateBoard: () => {},
   flagsMarked: 0,
   cellsDiscovered: 0,
 });
 
-// cliente: { name: 'pepe', room: 12345, x: 7, y: 7, action: 'f' }
-//
-// server: uu78f...
-// ACTION { msg_type: 'ACTION', username: 'pepe', action: 'r', x: '5', y: '6' } -> { success: true | false, board: char[64], state: 'w' | 'd' | 'g' }
-// LOGIN { msg_type: 'LOGIN', username: 'pepe', password: '12345', new_room: true | false } -> { success: true | false }
-// REGISTER { msg_type: 'REGISTER', username: 'pepe', password: '12345' } -> { sucess: true | false }
 type ACTION_HEADER = {
   username: string;
 };
@@ -69,6 +60,17 @@ type REGISTER = {
 export type ACTIONS = MOVE | LOGIN | REGISTER;
 
 export function AuthContextProvider({ children }: { children: ReactNode }) {
+  const [isWsReady, setIsWsReady] = useState(false);
+  // const navigate = useNavigate();
+  const WS_URL = "ws://127.0.0.1:3030";
+  const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(
+    WS_URL,
+    {
+      share: false,
+      shouldReconnect: () => true,
+    },
+  );
+
   const [name, setName] = useState("");
   const [board, setBoard] = useState<Identifier[][]>(() =>
     default_board.map((row) => [...row]),
@@ -76,54 +78,60 @@ export function AuthContextProvider({ children }: { children: ReactNode }) {
   const [flagsMarked, setFlagsMarked] = useState(0);
   const [cellsDiscovered, setCellsDiscovered] = useState(0);
 
-  async function updateBoard(x: number, y: number, action: "f" | "r") {}
-
-  const loginMutation = useMutation({
-    mutationFn: (action: LOGIN) => {
-      return fetch("http://localhost:3001/api/tcp", {
-        method: "POST",
-        body: JSON.stringify(action),
-      });
-    },
-  });
-
-  const registerMutation = useMutation({
-    mutationFn: (action: REGISTER) => {
-      return fetch("http://localhost:3001/api/tcp", {
-        method: "POST",
-        body: JSON.stringify(action),
-      });
-    },
-  });
-
-  async function login(username: string, password: string, new_room: boolean) {
+  function updateBoard(x: number, y: number, action: "f" | "r") {
     try {
-      const a = await loginMutation.mutateAsync({
-        type: "LOGIN",
-        password,
-        username,
-        new_room,
+      sendJsonMessage({
+        type: "MOVE",
+        x,
+        y,
+        action,
       });
-
-      console.log(a);
     } catch (err) {
       console.error(err);
     }
   }
 
-  async function register(username: string, password: string) {
+  function login(username: string, password: string, new_room: boolean) {
     try {
-      const a = await registerMutation.mutateAsync({
+      sendJsonMessage({
+        type: "LOGIN",
+        password,
+        username,
+        new_room: !new_room,
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  function register(username: string, password: string) {
+    try {
+      sendJsonMessage({
         type: "REGISTER",
         username,
         password,
       });
-
-      console.log(a);
     } catch (err) {
       console.error(err);
     }
   }
+
+  useEffect(() => {
+    console.log("Connection state changed");
+    if (readyState === ReadyState.OPEN) {
+      setIsWsReady(true);
+    } else {
+      setIsWsReady(false);
+    }
+  }, [readyState]);
+
+  useEffect(() => {
+    console.log(lastJsonMessage);
+    if (lastJsonMessage?.type === "LOGIN" && lastJsonMessage?.success) {
+      // navigate({ to: `/room/${lastJsonMessage.room_id}` });
+      document.location.replace(`/room/${lastJsonMessage.room_id}`);
+    }
+  }, [lastJsonMessage]);
 
   return (
     <authContext.Provider

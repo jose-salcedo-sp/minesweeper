@@ -384,6 +384,32 @@ int main() {
       perror("Fork failed");
       close(client_sd);
     }
+
+    // Start background process that sends UDP messages every second
+    pid_t udp_pid = fork();
+    if (udp_pid == 0) {
+      int udp_socket = socket(AF_INET, SOCK_DGRAM, 0);
+      if (udp_socket < 0) {
+        perror("UDP socket creation failed");
+        exit(1);
+      }
+
+      struct sockaddr_in udp_addr;
+      udp_addr.sin_family = AF_INET;
+      udp_addr.sin_port = htons(5001); // <-- match your proxy's UDP bind port
+      inet_pton(AF_INET, "127.0.0.1", &udp_addr.sin_addr); // send to proxy
+
+      const char *msg = "{\"type\":\"MOVE\",\"success\":true,\"board\":\"\",\"player\":\"udp\",\"status\":\"ONGOING\"}";
+
+      while (1) {
+        sendto(udp_socket, msg, strlen(msg), 0, (struct sockaddr *)&udp_addr,
+               sizeof(udp_addr));
+        sleep(1);
+      }
+
+      close(udp_socket);
+      exit(0); // exit child when loop is broken (shouldn't happen)
+    }
   }
 
   close(sd);

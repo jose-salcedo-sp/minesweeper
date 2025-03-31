@@ -1,5 +1,3 @@
-"use client"
-
 import { CellState } from "@/types"
 import Cell from "./cell"
 import { useAuth } from "../contexts/auth-context"
@@ -36,4 +34,3 @@ export default function Board() {
     </div>
   )
 }
-

@@ -1,8 +1,7 @@
 import { CellState, CellStateType } from "@/types";
 import { BombIcon, FlagTriangleRight, TargetIcon } from "lucide-react";
 import { Button } from "../ui/button";
-import { useAuth, type ACTIONS } from "../contexts/auth-context";
-import { useMutation } from "@tanstack/react-query";
+import { useAuth } from "../contexts/auth-context";
 
 type Props = {
   x: number;
@@ -18,25 +17,12 @@ type Props = {
 );
 
 export default function Cell(props: Props) {
-  const { name } = useAuth();
-
-  const mutation = useMutation({
-    mutationFn: (action: ACTIONS) => {
-      return fetch("http://localhost:3001/api/tcp", { method: "POST", body: JSON.stringify(action) });
-    },
-  });
+  const { updateBoard } = useAuth();
 
   function markCell(action: "r" | "f") {
-    return async () => {
+    return () => {
       try {
-        const result = await mutation.mutateAsync({
-          type: "MOVE",
-          username: name,
-          action,
-          x: props.x,
-          y: props.y,
-        });
-        console.log(result);
+        updateBoard(props.x, props.y, action);
       } catch (err) {
         console.error(err);
       }
@@ -73,7 +59,7 @@ const number_colors = [
 function UnreveiledCell({
   markCell,
 }: {
-  markCell: (action: "r" | "f") => () => Promise<void>;
+  markCell: (action: "r" | "f") => () => void;
 }) {
   return (
     <Button
@@ -87,7 +73,7 @@ function UnreveiledCell({
 function FlagCell({
   markCell,
 }: {
-  markCell: (action: "r" | "f") => () => Promise<void>;
+  markCell: (action: "r" | "f") => () => void;
 }) {
   return (
     <Button
