@@ -4,6 +4,8 @@ use tokio::{
     net::{TcpListener, TcpStream},
 };
 use tokio_tungstenite::{accept_async, tungstenite::protocol::Message};
+mod tcp_messages;
+use tcp_messages::RawTcpMessage;
 
 #[tokio::main]
 async fn main() {
@@ -57,14 +59,26 @@ async fn handle_ws_client(stream: tokio::net::TcpStream) {
         let mut buf = [0u8; 1024];
         loop {
             match backend_reader.read(&mut buf).await {
-                Ok(0) => break,
+                Ok(0) => break, // connection closed
                 Ok(n) => {
-                    let msg = Message::binary(buf[..n].to_vec());
-                    if ws_tx.send(msg).await.is_err() {
-                        break;
+                    let raw = &buf[..n];
+                    match serde_json::from_slice::<RawTcpMessage>(raw) {
+                        Ok(message) => {
+                            let json = serde_json::to_string(&message).unwrap();
+                            if ws_tx.send(Message::text(json)).await.is_err() {
+                                break;
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to deserialize backend message: {:?}", e);
+                            break;
+                        }
                     }
                 }
-                Err(_) => break,
+                Err(e) => {
+                    eprintln!("Error reading from backend: {:?}", e);
+                    break;
+                }
             }
         }
     };
