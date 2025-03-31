@@ -17,9 +17,11 @@
 
 #define MSG_SIZE 2048
 #define PORT 5000
+#define UDPPORT 5001
 
 // NEED TO REVIEW THESE GLOBALS
 int sd;
+int udp_sd;
 Room **rooms;
 int curr_room_id;
 int global_sd;
@@ -29,6 +31,25 @@ void aborta_handler(int sig) {
   log_info("🔀  Server shutting down...");
   close(sd);
   exit(0);
+}
+
+void init_udp_server() {
+    udp_sd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (udp_sd == -1) {
+        perror("UDP socket creation failed");
+        exit(1);
+    }
+
+    struct sockaddr_in udp_addr;
+    udp_addr.sin_family = AF_INET;
+    udp_addr.sin_port = htons(UDPPORT);  // Different port
+    udp_addr.sin_addr.s_addr = INADDR_ANY;
+
+    if (bind(udp_sd, (struct sockaddr*)&udp_addr, sizeof(udp_addr))) {
+        perror("UDP bind failed");
+        close(udp_sd);
+        exit(1);
+    }
 }
 
 void action_handler(int sig) {
