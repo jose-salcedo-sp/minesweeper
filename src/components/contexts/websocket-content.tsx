@@ -1,5 +1,12 @@
+import { Identifier } from "@/types";
 import { useNavigate } from "@tanstack/react-router";
-import { createContext, useContext, ReactNode, useEffect } from "react";
+import {
+  createContext,
+  useContext,
+  ReactNode,
+  useEffect,
+  useState,
+} from "react";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 
 type WebSocketContextType = {
@@ -9,6 +16,7 @@ type WebSocketContextType = {
   login: (username: string, password: string, new_room: boolean) => void;
   register: (username: string, password: string) => void;
   updateBoard: (x: number, y: number, action: "r" | "f") => void;
+  board: Identifier[][];
 };
 
 const WebSocketContext = createContext<WebSocketContextType | null>(null);
@@ -16,6 +24,16 @@ const WebSocketContext = createContext<WebSocketContextType | null>(null);
 export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   const WS_URL = "ws://127.0.0.1:3030";
   const navigate = useNavigate();
+  const [board, setBoard] = useState<Identifier[][]>(() => [
+    ["u", "u", "u", "u", "u", "u", "u", "u"],
+    ["u", "u", "u", "u", "u", "u", "u", "u"],
+    ["u", "u", "u", "u", "u", "u", "u", "u"],
+    ["u", "u", "u", "u", "u", "u", "u", "u"],
+    ["u", "u", "u", "u", "u", "u", "u", "u"],
+    ["u", "u", "u", "u", "u", "u", "u", "u"],
+    ["u", "u", "u", "u", "u", "u", "u", "u"],
+    ["u", "u", "u", "u", "u", "u", "u", "u"],
+  ]);
 
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(
     WS_URL,
@@ -64,9 +82,21 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   }
 
   useEffect(() => {
-    console.log(lastJsonMessage);
-    if (lastJsonMessage?.type === "LOGIN" && lastJsonMessage?.success) {
-      navigate({ to: `/room/${lastJsonMessage?.room_id}` });
+    switch (lastJsonMessage?.type) {
+      case "LOGIN": {
+        if (lastJsonMessage?.success)
+          navigate({ to: `/room/${lastJsonMessage?.room_id}` });
+        break;
+      }
+      case "MOVE": {
+        console.log(lastJsonMessage);
+
+        break;
+      }
+      default: {
+        console.error("Error wrong type!");
+        break;
+      }
     }
   }, [lastJsonMessage]);
 
