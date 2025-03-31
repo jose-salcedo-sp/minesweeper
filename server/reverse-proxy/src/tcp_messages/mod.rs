@@ -8,6 +8,12 @@ pub struct LoginResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct LeaderResponse {
+    leader: String,
+    difference: i16,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct JoinedRoomResponse {
     username: String,
 }
@@ -32,4 +38,5 @@ pub enum RawTcpMessage {
     Register(RegisterResponse),
     Move(MoveResponse),
     Joined(JoinedRoomResponse),
+    LeaderUpdate(LeaderResponse),
 }
