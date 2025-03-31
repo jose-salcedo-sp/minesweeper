@@ -1,7 +1,7 @@
 import { CellState, CellStateType } from "@/types";
 import { BombIcon, FlagTriangleRight, TargetIcon } from "lucide-react";
 import { Button } from "../ui/button";
-import { useWebSocketContext } from "../contexts/websocket-context";
+import { useWebSocketContext } from "../contexts/websocket-content";
 
 type Props = {
   x: number;

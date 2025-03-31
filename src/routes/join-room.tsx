@@ -1,4 +1,4 @@
-import { useWebSocketContext } from "@/components/contexts/websocket-context";
+import { useWebSocketContext } from "@/components/contexts/websocket-content";
 import { Button } from "@/components/ui/button";
 import {
   Card,
