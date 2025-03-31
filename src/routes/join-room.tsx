@@ -1,4 +1,4 @@
-import { useAuth } from "@/components/contexts/auth-context";
+import { useWebSocketContext } from "@/components/contexts/websocket-context";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -38,7 +38,7 @@ const formOpts = formOptions({
 });
 
 function RouteComponent() {
-  const { login } = useAuth();
+  const { login } = useWebSocketContext();
 
   const form = useForm({
     ...formOpts,
@@ -228,7 +228,7 @@ function RouteComponent() {
                   )}
                 />
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                    <UserIcon size={20} />
+                  <UserIcon size={20} />
                 </div>
               </div>
             </div>
@@ -257,7 +257,7 @@ function RouteComponent() {
                   )}
                 />
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                    <LockIcon size={20} />
+                  <LockIcon size={20} />
                 </div>
               </div>
             </div>

@@ -1,7 +1,7 @@
 import { CellState, CellStateType } from "@/types";
 import { BombIcon, FlagTriangleRight, TargetIcon } from "lucide-react";
 import { Button } from "../ui/button";
-import { useAuth } from "../contexts/auth-context";
+import { useWebSocketContext } from "../contexts/websocket-context";
 
 type Props = {
   x: number;
@@ -17,7 +17,7 @@ type Props = {
 );
 
 export default function Cell(props: Props) {
-  const { updateBoard } = useAuth();
+  const { updateBoard } = useWebSocketContext();
 
   function markCell(action: "r" | "f") {
     return () => {

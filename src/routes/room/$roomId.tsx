@@ -3,7 +3,6 @@ import { useEffect, useState } from "react"
 import { createFileRoute, useParams } from "@tanstack/react-router"
 import { Flag, Bomb, Trophy } from "lucide-react"
 import Board from "@/components/game/board"
-import { useAuth } from "@/components/contexts/auth-context"
 
 export const Route = createFileRoute("/room/$roomId")({
   component: RouteComponent,
@@ -14,7 +13,6 @@ function RouteComponent() {
   const { roomId } = useParams({from: Route.id})
   const [username, setUsername] = useState("Player")
   const [isLeader, setIsLeader] = useState(true)
-  const { flagsMarked, cellsDiscovered } = useAuth();
   const totalCells = 64; // 8x8 grid
   const totalFlags = 10; // Typical mine count
 
@@ -42,14 +40,14 @@ function RouteComponent() {
             <div className="flex items-center">
               <Flag className="h-5 w-5 text-red-500 mr-2" />
               <span className="font-mono">
-                {flagsMarked}/{totalFlags}
+                {/* {flagsMarked}/{totalFlags} */}
               </span>
             </div>
 
             <div className="flex items-center">
               <div className="w-3 h-3 bg-green-500 rounded-sm mr-2"></div>
               <span className="font-mono">
-                {cellsDiscovered}/{totalCells}
+                {/* {cellsDiscovered}/{totalCells} */}
               </span>
             </div>
 
@@ -59,7 +57,7 @@ function RouteComponent() {
                 <span className="text-yellow-400 text-sm">Leading</span>
               </div>
             )}
-          </div>  
+          </div>
         </div>
       </div>
 
@@ -105,4 +103,3 @@ function RouteComponent() {
     </div>
   )
 }
-
