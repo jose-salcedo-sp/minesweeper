@@ -23,9 +23,9 @@ void generate_bomb_map(char bomb_map[SIZE][SIZE], char bomb_count);
 void generate_unreveiled_map(char map[SIZE][SIZE]);
 
 BoardStatus process_move(char bomb_map[SIZE][SIZE], char game_map[SIZE][SIZE],
-                         BoardMove move);
+                         BoardMove move, int *revealed_count);
 void reveal_empty_cells(char bomb_map[SIZE][SIZE], char game_map[SIZE][SIZE],
-                        char x, char y);
+                        char x, char y, int *revealed_count);
 char count_adjacent_bombs(char bomb_map[SIZE][SIZE], char x, char y);
 char *map_to_string(char map[SIZE][SIZE]);
 void flatten_map(char dest[SIZE * SIZE], char map[SIZE][SIZE]);

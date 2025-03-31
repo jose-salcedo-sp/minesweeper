@@ -19,6 +19,7 @@ typedef struct {
   char username[15];
   int sd;
   BoardStatus status;
+  int revealed_cells;
 } Game;
 
 typedef struct {

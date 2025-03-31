@@ -56,5 +56,7 @@ void initialize_rooms(Room ***rooms) {
     generate_unreveiled_map((*rooms)[i]->game_1.client_board);
     generate_bomb_map((*rooms)[i]->game_2.server_board, SIZE);
     generate_unreveiled_map((*rooms)[i]->game_2.client_board);
+	(*rooms)[i]->game_1.revealed_cells = 0;
+    (*rooms)[i]->game_2.revealed_cells = 0;
   }
 }
