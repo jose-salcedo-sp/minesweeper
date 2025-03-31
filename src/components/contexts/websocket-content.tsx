@@ -82,6 +82,8 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   }
 
   useEffect(() => {
+      console.log(lastJsonMessage);
+
     switch (lastJsonMessage?.type) {
       case "LOGIN": {
         if (lastJsonMessage?.success)
@@ -89,8 +91,19 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
         break;
       }
       case "MOVE": {
-        console.log(lastJsonMessage);
+        if (typeof lastJsonMessage.board === "string") {
+          const flatBoard = lastJsonMessage.board.split("");
+          const newBoard: Identifier[][] = [];
 
+          for (let row = 0; row < 8; row++) {
+            newBoard.push(flatBoard.slice(row * 8, row * 8 + 8));
+          }
+
+          setBoard(newBoard);
+            console.log(newBoard);
+        } else {
+          console.error("Invalid board format");
+        }
         break;
       }
       default: {
@@ -107,6 +120,7 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
     login,
     register,
     updateBoard,
+    board,
   };
 
   return (

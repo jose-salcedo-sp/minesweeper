@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from "react"
 import { AlertCircle, MousePointerClick, MousePointerIcon as MousePointerSquare } from "lucide-react"
 
@@ -85,4 +83,3 @@ export default function InstructionsTooltip() {
     </div>
   )
 }
-

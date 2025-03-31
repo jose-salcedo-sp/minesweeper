@@ -1,18 +1,9 @@
 import { CellState } from "@/types";
 import Cell from "./cell";
-import { useState } from "react";
-export default function Board() {
-  const [board, setBoard] = useState(() => [
-    [1, "u", "u", "u", "u", "u", "u", "b"],
-    [2, "u", "u", "u", "u", "u", "u", "u"],
-    [3, "u", "u", "u", "u", "u", "u", "u"],
-    [4, "u", "u", "u", "u", "u", "u", "u"],
-    [5, "u", "u", "u", "u", "u", "u", "u"],
-    [6, "u", "u", "u", "u", "u", "u", "u"],
-    [7, "u", "u", "u", "u", "u", "u", "u"],
-    [8, "u", "u", "u", "u", "u", "u", "u"],
-  ]);
+import { useWebSocketContext } from "../contexts/websocket-content";
 
+export default function Board() {
+  const { board } = useWebSocketContext();
   return (
     <div className="relative">
       {/* Board shadow and glow effect */}
