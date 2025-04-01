@@ -73,8 +73,17 @@ async fn handle_ws_client(stream: TcpStream, backend_tcp_addr: String, udp_bind_
             match udp_socket.recv_from(&mut buf).await {
                 Ok((n, _addr)) => {
                     let raw = &buf[..n];
-                    if let Ok(message) = serde_json::from_slice::<RawTcpMessage>(raw) {
-                        let _ = udp_tx.send(message);
+                    let raw_str = String::from_utf8_lossy(raw);
+                    println!("[UDP → WS] RAW: {}", raw_str);
+
+                    match serde_json::from_slice::<RawTcpMessage>(raw) {
+                        Ok(message) => {
+                            println!("[UDP → WS] Parsed: {:?}", message);
+                            let _ = udp_tx.send(message);
+                        }
+                        Err(e) => {
+                            eprintln!("[UDP → WS] Failed to parse: {:?}", e);
+                        }
                     }
                 }
                 Err(e) => {
@@ -88,7 +97,7 @@ async fn handle_ws_client(stream: TcpStream, backend_tcp_addr: String, udp_bind_
     // WebSocket → TCP backend
     let to_backend = async {
         while let Some(Ok(msg)) = ws_rx.next().await {
-            println!("Received from WS: {:?}", msg);
+            println!("[WS → TCP] RAW: {:?}", msg);
 
             let data = if msg.is_binary() {
                 msg.into_data()
@@ -115,10 +124,19 @@ async fn handle_ws_client(stream: TcpStream, backend_tcp_addr: String, udp_bind_
                         Ok(0) => break,
                         Ok(n) => {
                             let raw = &buf[..n];
-                            if let Ok(message) = serde_json::from_slice::<RawTcpMessage>(raw) {
-                                let json = serde_json::to_string(&message).unwrap();
-                                if ws_tx.send(Message::text(json)).await.is_err() {
-                                    break;
+                            let raw_str = String::from_utf8_lossy(raw);
+                            println!("[TCP → WS] RAW: {}", raw_str);
+
+                            match serde_json::from_slice::<RawTcpMessage>(raw) {
+                                Ok(message) => {
+                                    println!("[TCP → WS] Parsed: {:?}", message);
+                                    let json = serde_json::to_string(&message).unwrap();
+                                    if ws_tx.send(Message::text(json)).await.is_err() {
+                                        break;
+                                    }
+                                }
+                                Err(e) => {
+                                    eprintln!("[TCP → WS] Failed to parse: {:?}", e);
                                 }
                             }
                         }
@@ -131,6 +149,7 @@ async fn handle_ws_client(stream: TcpStream, backend_tcp_addr: String, udp_bind_
 
                 // UDP messages via channel
                 Some(udp_msg) = udp_rx.recv() => {
+                    println!("{:?}", udp_msg);
                     if let Ok(json) = serde_json::to_string(&udp_msg) {
                         if ws_tx.send(Message::text(json)).await.is_err() {
                             break;

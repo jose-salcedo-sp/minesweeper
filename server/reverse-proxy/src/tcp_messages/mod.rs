@@ -16,6 +16,7 @@ pub struct LeaderResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct JoinedRoomResponse {
     username: String,
+    board: String
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
