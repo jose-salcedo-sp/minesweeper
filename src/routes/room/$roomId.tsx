@@ -17,6 +17,8 @@ function RouteComponent() {
 
   const { room } = useWebSocketContext();
 
+  console.log(room);
+
   // Format time as MM:SS
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -68,39 +70,27 @@ function RouteComponent() {
       {/* Main game area with enhanced visual appeal */}
       <div className="pt-16 pb-6 px-4 flex flex-col items-center justify-center min-h-screen">
         {/* Enhanced game stats bar with improved visual design */}
-        <div className="w-full max-w-4xl mb-6 bg-gradient-to-r from-gray-800/80 to-gray-900/80 backdrop-blur rounded-xl shadow-xl p-3 border border-gray-700/50">
-          <div className="flex flex-wrap justify-between items-center">
-            {/* Left side stats with improved visual grouping */}
-            <div className="flex items-center gap-4">
-              {/* Remaining flags counter with enhanced styling */}
-              <div className="flex flex-col items-center bg-gray-900/70 px-3 py-2 rounded-lg border border-gray-700/50">
-                <div className="flex items-center gap-2 mb-1">
-                  <Flag className="h-4 w-4 text-red-400" />
-                  <span className="font-mono text-sm text-red-200 font-medium">
-                    {1000}
-                  </span>
-                </div>
-                <span className="text-xs text-gray-400">Remaining</span>
-              </div>
-
-              {/* Cells discovered counter */}
-              <div className="flex flex-col items-center bg-gray-900/70 px-3 py-2 rounded-lg border border-gray-700/50">
-                <div className="flex items-center gap-2 mb-1">
-                  <Target className="h-4 w-4 text-green-400" />
-                  <span className="font-mono text-sm text-green-200 font-medium">
-                    X/Y
-                  </span>
-                </div>
-                <span className="text-xs text-gray-400">Cleared</span>
+        <div className="w-full max-w-2xl mb-6 bg-gradient-to-r from-gray-800/80 to-gray-900/80 backdrop-blur rounded-xl shadow-xl p-3 border border-gray-700/50">
+          <div className="flex flex-wrap justify-around items-center">
+            <div className="flex items-center bg-gray-900/70 px-4 py-2 rounded-lg border border-gray-700/50">
+              <div className="flex flex-col items-center">
+                <span className="text-xs text-gray-400 mb-1">
+                  {room.me.username || "No player"}
+                </span>
+                <span className="text-sm text-green-400 font-extrabold">
+                  {room.me.status}
+                </span>
               </div>
             </div>
 
-            {/* VS display with enhanced styling */}
+
             <div className="flex items-center bg-gray-900/70 px-4 py-2 rounded-lg border border-gray-700/50">
               <div className="flex flex-col items-center">
-                <span className="text-xs text-gray-400 mb-1">VERSUS</span>
-                <span className="text-sm text-red-400 font-medium">
-                  {room.oponent.username ?? "No oponent"}
+                <span className="text-xs text-gray-400 mb-1">
+                  {room.oponent.username || "No oponent"}
+                </span>
+                <span className="text-sm text-red-400 font-extrabold">
+                  {room.oponent.status}
                 </span>
               </div>
             </div>

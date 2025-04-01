@@ -5,6 +5,7 @@ pub struct LoginResponse {
     success: bool,
     username: String,
     room_id: i16,
+    oponent: Option<String>
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

@@ -89,13 +89,19 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  function login(username: string, password: string, new_room: boolean) {
+  function login(
+    username: string,
+    password: string,
+    new_room: boolean,
+    room_id?: string,
+  ) {
     try {
       sendJsonMessage({
         type: "LOGIN",
         password,
         username,
         new_room: !new_room,
+        ...(new_room ? { room_id: +room_id } : {}),
       });
     } catch (err) {
       console.error(err);
@@ -115,18 +121,33 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   }
 
   useEffect(() => {
+    console.log(lastJsonMessage);
     switch (lastJsonMessage?.type) {
       case "LOGIN": {
         if (lastJsonMessage?.success) {
           const username = lastJsonMessage.username;
 
-          setRoom((prev) => ({
-            ...prev,
-            me: {
-              ...prev.me,
-              username,
-            },
-          }));
+          setRoom((prev) => {
+            if (lastJsonMessage?.oponent)
+              return {
+                oponent: {
+                    ...prev.oponent,
+                    username: lastJsonMessage?.oponent
+                },
+                me: {
+                  ...prev.me,
+                  username,
+                },
+              };
+
+            return {
+              ...prev,
+              me: {
+                ...prev.me,
+                username,
+              },
+            };
+          });
 
           navigate({ to: `/room/${lastJsonMessage.room_id}` });
         }

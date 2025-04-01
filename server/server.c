@@ -230,6 +230,8 @@ void handle_client(struct client_info info, Room **rooms) {
                     sizeof(curr_room->game_2.username) - 1);
             curr_room->game_2.sd = client_sd;
 
+            cJSON_AddStringToObject(res, "oponent", curr_room->game_1.username);
+
             kill(room->pid_1, SIGUSR1);
           } else {
             strncpy(curr_room->game_1.username, username->valuestring,
@@ -399,8 +401,7 @@ int main() {
       udp_addr.sin_port = htons(5001); // <-- match your proxy's UDP bind port
       inet_pton(AF_INET, "127.0.0.1", &udp_addr.sin_addr); // send to proxy
 
-      const char *msg = "{\"type\":\"MOVE\",\"success\":true,\"board\":\"\","
-                        "\"player\":\"udp\",\"status\":\"ONGOING\"}";
+      const char *msg = "{\"type\":\"CONN\",\"success\":true }";
 
       while (1) {
         sendto(udp_socket, msg, strlen(msg), 0, (struct sockaddr *)&udp_addr,

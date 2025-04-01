@@ -44,7 +44,7 @@ function RouteComponent() {
   const form = useForm({
     ...formOpts,
     onSubmit: async ({ value }) => {
-      login(value.name, value.password, value.create_room);
+      login(value.name, value.password, value.create_room, value.room_id);
     },
   });
 
