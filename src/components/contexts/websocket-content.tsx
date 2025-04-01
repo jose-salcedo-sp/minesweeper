@@ -131,8 +131,8 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
             if (lastJsonMessage?.oponent)
               return {
                 oponent: {
-                    ...prev.oponent,
-                    username: lastJsonMessage?.oponent
+                  ...prev.oponent,
+                  username: lastJsonMessage?.oponent,
                 },
                 me: {
                   ...prev.me,
@@ -198,7 +198,10 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
         }
         break;
       }
-
+      case "CONN": {
+        console.info("[CONNNECTED: " + lastJsonMessage.success + " ]");
+        break;
+      }
       default: {
         console.error("Error wrong type!");
         break;

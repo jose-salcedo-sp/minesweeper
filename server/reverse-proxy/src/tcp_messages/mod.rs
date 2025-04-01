@@ -5,7 +5,7 @@ pub struct LoginResponse {
     success: bool,
     username: String,
     room_id: i16,
-    oponent: Option<String>
+    oponent: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -17,7 +17,7 @@ pub struct LeaderResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct JoinedRoomResponse {
     username: String,
-    board: String
+    board: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -34,6 +34,11 @@ pub struct MoveResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ConnResponse {
+    success: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "UPPERCASE")]
 pub enum RawTcpMessage {
     Login(LoginResponse),
@@ -41,4 +46,5 @@ pub enum RawTcpMessage {
     Move(MoveResponse),
     Joined(JoinedRoomResponse),
     LeaderUpdate(LeaderResponse),
+    Conn(ConnResponse),
 }

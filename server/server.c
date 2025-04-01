@@ -230,8 +230,6 @@ void handle_client(struct client_info info, Room **rooms) {
                     sizeof(curr_room->game_2.username) - 1);
             curr_room->game_2.sd = client_sd;
 
-            cJSON_AddStringToObject(res, "oponent", curr_room->game_1.username);
-
             kill(room->pid_1, SIGUSR1);
           } else {
             strncpy(curr_room->game_1.username, username->valuestring,
