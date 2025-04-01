@@ -1,4 +1,4 @@
-import { CellState } from "@/types";
+import { CellState, Identifier } from "@/types";
 import Cell from "./cell";
 import { useWebSocketContext } from "../contexts/websocket-content";
 
@@ -16,18 +16,18 @@ export default function Board() {
             return (
               <div key={`row_${y}`} className="flex flex-row gap-0.5">
                 {board[y].map((c, x) => {
-                  return typeof c === "number" ? (
+                  return !isNaN(parseInt(c, 10)) ? (
                     <Cell
                       key={`cell_${x}_${y}`}
                       state={CellState.n}
-                      number={c}
+                      number={c as number}
                       x={x}
                       y={y}
                     />
                   ) : (
                     <Cell
                       key={`cell_${x}_${y}`}
-                      state={CellState[c]}
+                      state={CellState[c as Exclude<number, Identifier>]}
                       x={x}
                       y={y}
                     />

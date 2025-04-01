@@ -1,4 +1,4 @@
-import { useAuth } from "@/components/contexts/auth-context";
+import { useWebSocketContext } from "@/components/contexts/websocket-content";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,7 +29,7 @@ const formOpts = formOptions({
 });
 
 function RouteComponent() {
-  const { register } = useAuth();
+  const { register } = useWebSocketContext();
 
   const form = useForm({
     ...formOpts,
