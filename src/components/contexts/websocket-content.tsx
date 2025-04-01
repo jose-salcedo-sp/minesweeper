@@ -115,7 +115,6 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   }
 
   useEffect(() => {
-    console.log(lastJsonMessage);
     switch (lastJsonMessage?.type) {
       case "LOGIN": {
         if (lastJsonMessage?.success) {
@@ -163,7 +162,7 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
                 status: lastJsonMessage.status,
               },
             }));
-          } else {
+          } else if (lastJsonMessage.player === room.oponent.username) {
             setRoom((prev) => ({
               ...prev,
               oponent: {

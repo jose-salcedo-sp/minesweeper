@@ -86,7 +86,7 @@ function FlagCell({
       onAuxClick={markCell("f")}
       onClick={markCell("r")}
       disabled={disabled}
-      className={`aspect-square w-8 h-8 p-0 bg-gray-500 flex justify-center items-center`}
+      className="aspect-square w-8 h-8 p-0 bg-gray-500 flex justify-center items-center"
     >
       <FlagTriangleRight size={20} className="text-black" />
     </Button>

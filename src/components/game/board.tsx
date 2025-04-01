@@ -13,8 +13,6 @@ export default function Board({ isPlayerBoard }: Props) {
     ? ws_ctx.room.me.board
     : ws_ctx.room.oponent.board;
 
-    console.log(isPlayerBoard, room.status, !isPlayerBoard || room.status !== "ONGOING");
-
   return (
     <div className="relative">
       {/* Board shadow and glow effect */}
