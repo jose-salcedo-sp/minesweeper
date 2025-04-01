@@ -58,7 +58,7 @@ function RouteComponent() {
         {/* Bomb images with varied rotations and opacity */}
         <div className="absolute top-[10%] left-[15%] w-16 h-16 animate-float-slow rotate-12">
           <img
-            src="public/img/bomb.svg"
+            src="/img/bomb.svg"
             alt="Bomb"
             className="w-full h-full filter-dark-red opacity-30"
           />
@@ -66,7 +66,7 @@ function RouteComponent() {
 
         <div className="absolute top-[30%] right-[10%] w-12 h-12 animate-float-medium -rotate-15">
           <img
-            src="public/img/bomb.svg"
+            src="/img/bomb.svg"
             alt="Bomb"
             className="w-full h-full filter-dark-red opacity-25"
           />
@@ -74,7 +74,7 @@ function RouteComponent() {
 
         <div className="absolute bottom-[20%] left-[25%] w-10 h-10 animate-float-fast rotate-45">
           <img
-            src="public/img/bomb.svg"
+            src="/img/bomb.svg"
             alt="Bomb"
             className="w-full h-full filter-dark-red opacity-15"
           />
@@ -84,7 +84,7 @@ function RouteComponent() {
 
         <div className="absolute top-[55%] right-[20%] w-15 h-15 animate-float-slow-reverse -rotate-95">
           <img
-            src="public/img/bomb.svg"
+            src="/img/bomb.svg"
             alt="Bomb"
             className="w-full h-full filter-dark-red opacity-25"
           />
@@ -161,7 +161,7 @@ function RouteComponent() {
         {/* Decorative corner elements with bomb SVG */}
         <div className="absolute -top-3 -left-3 w-6 h-6 bg-gray-800 rounded-full flex items-center justify-center shadow-lg">
           <img
-            src="public/img/bomb.svg"
+            src="/img/bomb.svg"
             alt="Bomb"
             className="w-3 h-3 filter-dark-red"
           />
@@ -180,7 +180,7 @@ function RouteComponent() {
         </div>
         <div className="absolute -bottom-3 -right-3 w-6 h-6 bg-gray-800 rounded-full flex items-center justify-center shadow-lg">
           <img
-            src="public/img/bomb.svg"
+            src="/img/bomb.svg"
             alt="Bomb"
             className="w-3 h-3 filter-dark-red"
           />
@@ -370,7 +370,7 @@ function RouteComponent() {
                     <>
                       {/* Bomb SVG */}
                       <img
-                        src="public/img/bomb.svg"
+                        src="/img/bomb.svg"
                         alt="Bomb"
                         className="w-4 h-4 mr-2 filter-dark-red"
                       />
