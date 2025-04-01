@@ -116,20 +116,16 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     console.log(lastJsonMessage);
-
     switch (lastJsonMessage?.type) {
       case "LOGIN": {
         if (lastJsonMessage?.success) {
           const username = lastJsonMessage.username;
-          const emptyBoard: Identifier[][] = Array.from({ length: 8 }, () =>
-            Array(8).fill("u"),
-          );
 
           setRoom((prev) => ({
             ...prev,
-            [username]: {
-              board: emptyBoard,
-              status: "ONGOING",
+            me: {
+              ...prev.me,
+              username,
             },
           }));
 
@@ -137,8 +133,20 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
         }
         break;
       }
+      case "JOINED": {
+        const username = lastJsonMessage.username;
+
+        setRoom((prev) => ({
+          ...prev,
+          oponent: {
+            ...prev.oponent,
+            username,
+          },
+        }));
+        break;
+      }
       case "MOVE": {
-        if (typeof lastJsonMessage.board === "string") {
+        if (lastJsonMessage.success) {
           const flatBoard = lastJsonMessage.board.split("");
           const newBoard: Identifier[][] = [];
 
@@ -146,16 +154,25 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
             newBoard.push(flatBoard.slice(row * 8, row * 8 + 8));
           }
 
-          const username = lastJsonMessage.player;
-
-          setRoom((prev) => ({
-            ...prev,
-            [username]: {
-              board: newBoard,
-              status:
-                lastJsonMessage.status || prev[username]?.status || "ONGOING",
-            },
-          }));
+          if (lastJsonMessage.player === room.me.username) {
+            setRoom((prev) => ({
+              ...prev,
+              me: {
+                ...prev.me,
+                board: newBoard,
+                status: lastJsonMessage.status,
+              },
+            }));
+          } else {
+            setRoom((prev) => ({
+              ...prev,
+              oponent: {
+                ...prev.oponent,
+                board: newBoard,
+                status: lastJsonMessage.status,
+              },
+            }));
+          }
         } else {
           console.error("Invalid board format");
         }
@@ -168,6 +185,10 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
       }
     }
   }, [lastJsonMessage]);
+
+  useEffect(() => {
+    console.log(room);
+  }, [room]);
 
   const contextValue: WebSocketContextType = {
     sendJsonMessage,

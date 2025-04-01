@@ -2,8 +2,14 @@ import { CellState, Identifier } from "@/types";
 import Cell from "./cell";
 import { useWebSocketContext } from "../contexts/websocket-content";
 
-export default function Board() {
-  const { board } = useWebSocketContext();
+type Props = {
+  isPlayerBoard: boolean;
+};
+
+export default function Board({ isPlayerBoard }: Props) {
+  const ws_ctx = useWebSocketContext();
+  const board = isPlayerBoard ? ws_ctx.room.me.board : ws_ctx.room.oponent.board;
+
   return (
     <div className="relative">
       {/* Board shadow and glow effect */}
