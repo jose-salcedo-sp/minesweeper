@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { formOptions, useForm, useStore } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
 import { LoaderCircleIcon, LockIcon, UserIcon, Users } from "lucide-react";
+import InstructionsTooltip from "@/components/game/toolTip";
 
 export const Route = createFileRoute("/join-room")({
   component: RouteComponent,
@@ -150,8 +151,13 @@ function RouteComponent() {
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.03]"></div>
       </div>
 
+      <div className="flex justify-end  pb-110">
+        <InstructionsTooltip />
+      </div>
+
+
       {/* Main card */}
-      <Card className="w-full max-w-md relative backdrop-blur-sm bg-gray-900/90 border-gray-800 shadow-2xl">
+      <Card className="w-full max-w-md relative m-5 backdrop-blur-sm bg-gray-900/90 border-gray-800 shadow-2xl">
         {/* Decorative corner elements with bomb SVG */}
         <div className="absolute -top-3 -left-3 w-6 h-6 bg-gray-800 rounded-full flex items-center justify-center shadow-lg">
           <img
