@@ -9,6 +9,18 @@ import {
 } from "react";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 
+type Board = Identifier[][];
+type Game = {
+  username: string;
+  board: Board;
+  status: string;
+};
+
+type Room = {
+  me: Game;
+  oponent: Game;
+};
+
 type WebSocketContextType = {
   sendJsonMessage: (msg: unknown) => void;
   lastJsonMessage: unknown;
@@ -16,7 +28,7 @@ type WebSocketContextType = {
   login: (username: string, password: string, new_room: boolean) => void;
   register: (username: string, password: string) => void;
   updateBoard: (x: number, y: number, action: "r" | "f") => void;
-  board: Identifier[][];
+  room: Room;
 };
 
 const WebSocketContext = createContext<WebSocketContextType | null>(null);
@@ -24,16 +36,37 @@ const WebSocketContext = createContext<WebSocketContextType | null>(null);
 export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   const WS_URL = "ws://127.0.0.1:3030";
   const navigate = useNavigate();
-  const [board, setBoard] = useState<Identifier[][]>(() => [
-    ["u", "u", "u", "u", "u", "u", "u", "u"],
-    ["u", "u", "u", "u", "u", "u", "u", "u"],
-    ["u", "u", "u", "u", "u", "u", "u", "u"],
-    ["u", "u", "u", "u", "u", "u", "u", "u"],
-    ["u", "u", "u", "u", "u", "u", "u", "u"],
-    ["u", "u", "u", "u", "u", "u", "u", "u"],
-    ["u", "u", "u", "u", "u", "u", "u", "u"],
-    ["u", "u", "u", "u", "u", "u", "u", "u"],
-  ]);
+
+  const [room, setRoom] = useState<Room>(() => ({
+    me: {
+      username: "",
+      board: [
+        ["u", "u", "u", "u", "u", "u", "u", "u"],
+        ["u", "u", "u", "u", "u", "u", "u", "u"],
+        ["u", "u", "u", "u", "u", "u", "u", "u"],
+        ["u", "u", "u", "u", "u", "u", "u", "u"],
+        ["u", "u", "u", "u", "u", "u", "u", "u"],
+        ["u", "u", "u", "u", "u", "u", "u", "u"],
+        ["u", "u", "u", "u", "u", "u", "u", "u"],
+        ["u", "u", "u", "u", "u", "u", "u", "u"],
+      ],
+      status: "ONGOING",
+    },
+    oponent: {
+      username: "",
+      board: [
+        ["u", "u", "u", "u", "u", "u", "u", "u"],
+        ["u", "u", "u", "u", "u", "u", "u", "u"],
+        ["u", "u", "u", "u", "u", "u", "u", "u"],
+        ["u", "u", "u", "u", "u", "u", "u", "u"],
+        ["u", "u", "u", "u", "u", "u", "u", "u"],
+        ["u", "u", "u", "u", "u", "u", "u", "u"],
+        ["u", "u", "u", "u", "u", "u", "u", "u"],
+        ["u", "u", "u", "u", "u", "u", "u", "u"],
+      ],
+      status: "ONGOING",
+    },
+  }));
 
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(
     WS_URL,
@@ -82,12 +115,26 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   }
 
   useEffect(() => {
-      console.log(lastJsonMessage);
+    console.log(lastJsonMessage);
 
     switch (lastJsonMessage?.type) {
       case "LOGIN": {
-        if (lastJsonMessage?.success)
-          navigate({ to: `/room/${lastJsonMessage?.room_id}` });
+        if (lastJsonMessage?.success) {
+          const username = lastJsonMessage.username;
+          const emptyBoard: Identifier[][] = Array.from({ length: 8 }, () =>
+            Array(8).fill("u"),
+          );
+
+          setRoom((prev) => ({
+            ...prev,
+            [username]: {
+              board: emptyBoard,
+              status: "ONGOING",
+            },
+          }));
+
+          navigate({ to: `/room/${lastJsonMessage.room_id}` });
+        }
         break;
       }
       case "MOVE": {
@@ -99,13 +146,22 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
             newBoard.push(flatBoard.slice(row * 8, row * 8 + 8));
           }
 
-          setBoard(newBoard);
-            console.log(newBoard);
+          const username = lastJsonMessage.player;
+
+          setRoom((prev) => ({
+            ...prev,
+            [username]: {
+              board: newBoard,
+              status:
+                lastJsonMessage.status || prev[username]?.status || "ONGOING",
+            },
+          }));
         } else {
           console.error("Invalid board format");
         }
         break;
       }
+
       default: {
         console.error("Error wrong type!");
         break;
@@ -113,14 +169,14 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [lastJsonMessage]);
 
-  const contextValue = {
+  const contextValue: WebSocketContextType = {
     sendJsonMessage,
     lastJsonMessage,
     readyState,
     login,
     register,
     updateBoard,
-    board,
+    room,
   };
 
   return (
