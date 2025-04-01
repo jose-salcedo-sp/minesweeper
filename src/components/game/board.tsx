@@ -8,7 +8,12 @@ type Props = {
 
 export default function Board({ isPlayerBoard }: Props) {
   const ws_ctx = useWebSocketContext();
-  const board = isPlayerBoard ? ws_ctx.room.me.board : ws_ctx.room.oponent.board;
+  const room = isPlayerBoard ? ws_ctx.room.me : ws_ctx.room.oponent;
+  const board = isPlayerBoard
+    ? ws_ctx.room.me.board
+    : ws_ctx.room.oponent.board;
+
+    console.log(isPlayerBoard, room.status, !isPlayerBoard || room.status !== "ONGOING");
 
   return (
     <div className="relative">
@@ -29,6 +34,7 @@ export default function Board({ isPlayerBoard }: Props) {
                       number={c as number}
                       x={x}
                       y={y}
+                      disabled={!isPlayerBoard || room.status !== "ONGOING"}
                     />
                   ) : (
                     <Cell
@@ -36,6 +42,7 @@ export default function Board({ isPlayerBoard }: Props) {
                       state={CellState[c as Exclude<number, Identifier>]}
                       x={x}
                       y={y}
+                      disabled={!isPlayerBoard || room.status !== "ONGOING"}
                     />
                   );
                 })}

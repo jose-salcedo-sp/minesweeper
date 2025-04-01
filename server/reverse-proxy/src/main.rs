@@ -17,12 +17,15 @@ struct Args {
     /// WebSocket proxy listening port
     #[arg(long, default_value_t = 3030)]
     ws_port: u16,
+    /// UDP bind port (this proxy binds to this port)
+    #[arg(long, default_value_t = 3031)]
+    udp_bind_port: u16,
     /// TCP backend port
     #[arg(long, default_value_t = 5000)]
     backend_tcp_port: u16,
-    /// UDP listening port
+    /// Backend UDP port (we will receive from here)
     #[arg(long, default_value_t = 5001)]
-    udp_port: u16,
+    backend_udp_port: u16,
 }
 
 #[tokio::main]
@@ -31,19 +34,36 @@ async fn main() {
 
     let proxy_ws_addr = format!("0.0.0.0:{}", args.ws_port);
     let backend_tcp_addr = format!("127.0.0.1:{}", args.backend_tcp_port);
-    let udp_bind_addr = format!("127.0.0.1:{}", args.udp_port);
+    let udp_bind_addr = format!("127.0.0.1:{}", args.udp_bind_port);
+    let backend_udp_addr = format!("127.0.0.1:{}", args.udp_bind_port);
 
     let listener = TcpListener::bind(&proxy_ws_addr).await.unwrap();
     println!("WebSocket proxy listening on ws://{}", proxy_ws_addr);
+    println!(
+        "Listening for UDP messages on {} (from backend UDP port {})",
+        udp_bind_addr, args.backend_udp_port
+    );
 
     while let Ok((stream, _)) = listener.accept().await {
         let backend_tcp_addr = backend_tcp_addr.clone();
         let udp_bind_addr = udp_bind_addr.clone();
-        tokio::spawn(handle_ws_client(stream, backend_tcp_addr, udp_bind_addr));
+        let backend_udp_addr = backend_udp_addr.clone();
+
+        tokio::spawn(handle_ws_client(
+            stream,
+            backend_tcp_addr,
+            udp_bind_addr,
+            backend_udp_addr,
+        ));
     }
 }
 
-async fn handle_ws_client(stream: TcpStream, backend_tcp_addr: String, udp_bind_addr: String) {
+async fn handle_ws_client(
+    stream: TcpStream,
+    backend_tcp_addr: String,
+    udp_bind_addr: String,
+    backend_udp_addr: String,
+) {
     let ws_stream = match accept_async(stream).await {
         Ok(ws) => ws,
         Err(e) => {
@@ -65,13 +85,18 @@ async fn handle_ws_client(stream: TcpStream, backend_tcp_addr: String, udp_bind_
 
     let (udp_tx, mut udp_rx) = mpsc::unbounded_channel();
 
+    // Per-client UDP listener task
     tokio::spawn(async move {
         let udp_socket = UdpSocket::bind(&udp_bind_addr).await.unwrap();
+
+        // Connect to backend UDP address so we only receive from that endpoint
+        udp_socket.connect(backend_udp_addr).await.unwrap();
+
         let mut buf = [0u8; 1024];
 
         loop {
-            match udp_socket.recv_from(&mut buf).await {
-                Ok((n, _addr)) => {
+            match udp_socket.recv(&mut buf).await {
+                Ok(n) => {
                     let raw = &buf[..n];
                     let raw_str = String::from_utf8_lossy(raw);
                     println!("[UDP → WS] RAW: {}", raw_str);
@@ -118,7 +143,6 @@ async fn handle_ws_client(stream: TcpStream, backend_tcp_addr: String, udp_bind_
         let mut buf = [0u8; 1024];
         loop {
             tokio::select! {
-                // TCP input
                 result = backend_reader.read(&mut buf) => {
                     match result {
                         Ok(0) => break,
@@ -147,7 +171,6 @@ async fn handle_ws_client(stream: TcpStream, backend_tcp_addr: String, udp_bind_
                     }
                 }
 
-                // UDP messages via channel
                 Some(udp_msg) = udp_rx.recv() => {
                     println!("{:?}", udp_msg);
                     if let Ok(json) = serde_json::to_string(&udp_msg) {

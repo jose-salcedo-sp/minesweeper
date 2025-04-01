@@ -6,6 +6,7 @@ import { useWebSocketContext } from "../contexts/websocket-content";
 type Props = {
   x: number;
   y: number;
+  disabled: boolean
 } & (
   | {
       state: typeof CellState.n;
@@ -31,9 +32,9 @@ export default function Cell(props: Props) {
 
   switch (props.state) {
     case CellState.u:
-      return <UnreveiledCell markCell={markCell} />;
+      return <UnreveiledCell markCell={markCell} disabled={props.disabled} />;
     case CellState.f:
-      return <FlagCell markCell={markCell} />;
+      return <FlagCell markCell={markCell} disabled={props.disabled} />;
     case CellState.n: // Check number variant because it comes with props
       return <NumberCell n={props.number} />;
     case CellState.b:
@@ -58,28 +59,34 @@ const number_colors = [
 
 function UnreveiledCell({
   markCell,
+  disabled
 }: {
   markCell: (action: "r" | "f") => () => void;
+  disabled: boolean
 }) {
   return (
     <Button
       onAuxClick={markCell("f")}
       onClick={markCell("r")}
+      disabled={disabled}
       className="aspect-square w-8 h-8 p-0 bg-gray-500 border-2 border-gray-800 border-r-0"
     ></Button>
   );
 }
 
 function FlagCell({
-  markCell,
-}: {
-  markCell: (action: "r" | "f") => () => void;
-}) {
+    markCell,
+    disabled
+  }: {
+    markCell: (action: "r" | "f") => () => void;
+    disabled: boolean
+  }) {
   return (
     <Button
       onAuxClick={markCell("f")}
       onClick={markCell("r")}
-      className="aspect-square w-8 h-8 p-0 bg-gray-500 flex justify-center items-center"
+      disabled={disabled}
+      className={`aspect-square w-8 h-8 p-0 bg-gray-500 flex justify-center items-center`}
     >
       <FlagTriangleRight size={20} className="text-black" />
     </Button>
